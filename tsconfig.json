@@ -13,5 +13,5 @@
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
-  ]
+, "app/(telas)/home.jsx", "app/(telas)/explore.jsx", "app/(telas)/_layout.jsx", "app/_layout.jsx", "app/modal.jsx"  ]
 }
