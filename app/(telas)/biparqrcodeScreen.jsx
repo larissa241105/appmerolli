@@ -2,38 +2,53 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useState } from 'react';
 import { Button, StyleSheet, Text, View, Alert } from 'react-native';
 import { router } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 
 export default function BiparQrCodeScreen() {
  
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false); 
 
-  const handleBarCodeScanned = ({ type, data }) => {
-    if (!scanned) {
-      setScanned(true);
-      Alert.alert(
-        "Código de Barras Lido!",
-        `Tipo: ${type}\nDado: ${data}`,
-        [
-          {
-            text: "OK",
-            onPress: () => {
-               setScanned(false);
-              
-              router.back();
-            }
-          },
-        ]
-      );
-    }
-  };
+    const CADASTRO_ROUTE = 'home'; // **Ajuste para a sua rota real**
+    const { osId, pedidoNumero } = useLocalSearchParams();
+    console.log("Tela QRCODE recebeu os parâmetros:", { osId, pedidoNumero });
+
+const handleBarCodeScanned = ({ type, data }) => {
+     if (!scanned) {
+        setScanned(true);
+        Alert.alert(
+          "Código de Barras Lido!",
+          `Tipo: ${type}\nDado: ${data}`,
+          [
+             {
+               text: "OK",
+               onPress: () => {
+                   setScanned(false);
+
+                   const paramsParaNavegar = { 
+                tag: data,
+                osId: osId,           // vem dos params recebidos
+                pedidoNumero: pedidoNumero  // vem dos params recebidos
+              };
+
+        console.log("Tela QRCODE vai enviar para Cadastro:", paramsParaNavegar);
+                  router.navigate({
+                    pathname: CADASTRO_ROUTE,
+                    params: paramsParaNavegar
+                  });
+               }
+             },
+          ]
+        );
+     }
+   };
 
   if (!permission) {
     return <View style={styles.container}><Text>Aguardando permissão...</Text></View>;
   }
 
   if (!permission.granted) {
-    
+
     return (
       <View style={styles.container}>
         <Text style={styles.message}>Precisamos da sua permissão para acessar a câmera</Text>

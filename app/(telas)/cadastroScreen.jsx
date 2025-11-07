@@ -10,9 +10,9 @@ export default function CadastroScreen() {
     
   // --- Estados para os parâmetros recebidos ---
   const [osId, setOsId] = useState(null);
+  const [pedidoNumero, setPedidoNumero] = useState(null);
 
   // --- Estados para cada campo do formulário ---
-  const [tagDoCliente, setTagDoCliente] = useState('');
   const [nossaTag, setNossaTag] = useState('');
   const [nomeCliente, setNomeCliente] = useState('');
   const [setor, setSetor] = useState('');
@@ -28,28 +28,44 @@ export default function CadastroScreen() {
   const [selectedStatus, setSelectedStatus] = useState('');
 
   const params = useLocalSearchParams();
-
+ const { tag } = params;
 
   useEffect(() => {
     console.log('Parâmetros recebidos da navegação:', params);
     if (params.osId) {
       setOsId(params.osId);
     }
+    if (params.pedidoNumero) {
+    setPedidoNumero(params.pedidoNumero);
+ }
 
   }, [params]);
 
+const handleSalvar = async () => {
 
-  const handleSalvar = async () => {
+    // 1. EXTRAÇÃO ROBUSTA: Use os estados que foram populados pelo useEffect
+    // Esta é a principal alteração.
+    const osIdFinal = osId;
+    const pedidoNumeroFinal = pedidoNumero;
 
+    // 2. VALIDAÇÃO CRÍTICA DOS PARÂMETROS
+    if (!osIdFinal || !pedidoNumeroFinal) {
+        console.error('Dados de navegação ausentes nos estados:', { osIdFinal, pedidoNumeroFinal });
+        Alert.alert('Erro de Sistema', 'OS ID e/ou Número do Pedido não foram recebidos corretamente. Tente novamente.');
+        return;
+    }
+
+    // 3. VALIDAÇÃO DOS CAMPOS DO FORMULÁRIO
     if (!nossaTag || !nomeCliente || !selectedStatus) {
         Alert.alert('Erro', 'Por favor, preencha os campos obrigatórios: Nossa Tag, Nome do Cliente e Status.');
         return;
     }
 
-
     const payload = {
-        osId,
-        tagCliente: tagDoCliente,
+        // USANDO OS VALORES FINAIS E GARANTIDOS
+        osId: osIdFinal,
+        pedidoNumero: pedidoNumeroFinal,
+        tagCliente: tag,
         nossaTag,
         nomeCliente,
         setor,
@@ -67,14 +83,18 @@ export default function CadastroScreen() {
 
     try {
         await axios.post(`${API_BASE_URL}/api/inventario`, payload);
+        
         Alert.alert('Sucesso!', 'Item cadastrado no inventário com sucesso.', [
-            { text: 'OK', onPress: () => router.back() } // Volta para a tela anterior
+            { text: 'OK', onPress: () => router.back() }
         ]);
     } catch (error) {
-        console.error('Erro ao salvar inventário:', error);
-        Alert.alert('Falha no Cadastro', 'Não foi possível salvar o item. Verifique sua conexão ou tente novamente.');
+        console.error('Erro ao salvar inventário:', error.response?.data || error.message);
+        Alert.alert(
+            'Falha no Cadastro',
+            `Não foi possível salvar o item. Detalhes: ${error.response?.data?.message || 'Erro de conexão ou servidor.'}`
+        );
     }
-  };
+};
 
   return (
     <>
@@ -95,12 +115,10 @@ export default function CadastroScreen() {
         <View style={styles.formContainer}>
         
         <Text style={[styles.label, { color: '#000' }]} >T a g   d o   c l i e n t e</Text>
-        <TextInput
+       <TextInput
             style={styles.input}
-            placeholder="T a g   d o   c l i e n t e"
             placeholderTextColor="#757575ff"
-            value={tagDoCliente} 
-            onChangeText={setTagDoCliente} 
+             value={tag || 'Nenhum código encontrado.'}  
           />
 
           <Text style={[styles.label, { color: '#9c2a2aff' }]}>N o s s a   t a g</Text>

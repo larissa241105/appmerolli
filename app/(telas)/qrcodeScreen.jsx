@@ -1,100 +1,114 @@
-import React from 'react';
+import React, { useState } from 'react'; // 👈 Importar useState
 import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions, TextInput } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Stack } from 'expo-router';
-import { router } from 'expo-router';
-// Importação do Expo Camera ou outro pacote de scanner de QR Code seria necessário aqui
-// Ex: import { Camera } from 'expo-camera';
+import { Stack, router } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 
-const QrcodeScreen = () => { // Nome da função alterado para PascalCase (padrão React)
-  const insets = useSafeAreaInsets();
+const QrcodeScreen = () => {
+   const insets = useSafeAreaInsets();
+  
+   const [plaquetaAtualValue, setplaquetaAtualValue] = useState('');
+   const params = useLocalSearchParams();
 
-  function LogoTitle() {
-    return (
-      <Image
-        style={styles.logo}
-        source={require('../../assets/images/logo.png')}
-        accessibilityLabel="Logo da MerolliSoft"
-      />
-    );
-  }
+   const CADASTRO_ROUTE = 'home'; 
 
-  // Ação de Cadastro pode ser o scanner de QR Code
-  const handleScanQrcode = () => {
-    // Aqui você navegaria para a tela do scanner de QR Code (home foi usado como placeholder)
-    router.push('biparqrcodeScreen'); // Idealmente, você usaria uma rota para a tela de scanner
+   function LogoTitle() {
+     return (
+        <Image
+          style={styles.logo}
+          source={require('../../assets/images/logo.png')}
+          accessibilityLabel="Logo da MerolliSoft"
+        />
+     );
+   }
+
+   const handleScanQrcode = () => {
+     // Navega para a tela de leitura de QR code
+   router.push({
+      pathname: 'biparqrcodeScreen',
+      params: params // Passa os parâmetros (osId, pedidoNumero, etc.) adiante
+    });
   };
+   const handleSearchPlaqueta = () => {
+       // 2. USAR O VALOR DO ESTADO AQUI
+       if (!plaquetaAtualValue.trim()) {
+             Alert.alert('Atenção', 'Por favor, digite o número da plaqueta.');
+             return;
+       }
 
-  const handleSearchPlaqueta = () => {
-    // Lógica para consultar a plaqueta com o número digitado
-    console.log('Consultar plaqueta');
-    // router.push('consultaScreen');
-  };
-  // -----------------------------
+       console.log(`Consultando plaqueta: ${plaquetaAtualValue}`);
 
-  return (
-    <>
-      <Stack.Screen
-        options={{
-          headerLeft: props => <LogoTitle {...props} />,
-          headerTitle: '',
-          gestureEnabled: true,
-          headerStyle: {
-            backgroundColor: '#000',
-          },
-          headerTintColor: '#fff',
-        }}
-      />
+       // ⭐ Enviando o valor digitado como parâmetro
+      router.push({
+          pathname: CADASTRO_ROUTE,
+          params: {
+              ...params, // Envia os parâmetros que já tínhamos (osId, etc)
+              tag: plaquetaAtualValue.trim(), // E adiciona o novo parâmetro 'tag'
+          }
+      }); 
+   };
 
-      <View style={styles.container}>
-        <View style={styles.contentContainer}>
-          <TouchableOpacity
-            style={styles.qrButton}
-            onPress={handleScanQrcode}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.qrButtonTitle}>Bipar QR Code do Cliente</Text>
-            <Image
-              source={require('../../assets/images/qrcode.png')}
-              style={styles.qrImage}
-            />
-            <Text style={styles.qrButtonSubtitle}>Toque no ícone do qrcode para abrir o leitor</Text>
-          </TouchableOpacity>
+   return (
+     <>
+        <Stack.Screen
+          options={{
+             headerLeft: props => <LogoTitle {...props} />,
+             headerTitle: '',
+             gestureEnabled: true,
+             headerStyle: {
+               backgroundColor: '#000',
+             },
+             headerTintColor: '#fff',
+          }}
+        />
 
-        
-          <View style={styles.dividerContainer}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>OU</Text>
-            <View style={styles.dividerLine} />
+        <View style={styles.container}>
+          <View style={styles.contentContainer}>
+             <TouchableOpacity
+               style={styles.qrButton}
+               onPress={handleScanQrcode}
+               activeOpacity={0.7}
+             >
+               <Text style={styles.qrButtonTitle}>Bipar QR Code do Cliente</Text>
+               <Image
+                  source={require('../../assets/images/qrcode.png')}
+                  style={styles.qrImage}
+               />
+               <Text style={styles.qrButtonSubtitle}>Toque no ícone do qrcode para abrir o leitor</Text>
+             </TouchableOpacity>
+
+             <View style={styles.dividerContainer}>
+               <View style={styles.dividerLine} />
+               <Text style={styles.dividerText}>OU</Text>
+               <View style={styles.dividerLine} />
+             </View>
+
+             {/* Seção 2: Digitar Número da Plaqueta */}
+             <View style={styles.inputSection}>
+               <Text style={styles.inputLabel}>Digitar Número da Plaqueta</Text>
+               <TextInput
+                  style={styles.input}
+                  placeholder="Ex: 123456"
+                  placeholderTextColor="#999"
+                  keyboardType="numeric"
+                  maxLength={10} 
+                  // 3. VINCULAR O VALOR DO INPUT AO ESTADO
+                  value={plaquetaAtualValue}
+                  onChangeText={setplaquetaAtualValue} // 👈 Atualiza o estado
+               />
+               <TouchableOpacity style={styles.saveButton} onPress={handleSearchPlaqueta}>
+                  <Text style={styles.saveButtonText}>Buscar/Salvar</Text>
+               </TouchableOpacity>
+             </View>
+
           </View>
-
-          {/* Seção 2: Digitar Número da Plaqueta */}
-          <View style={styles.inputSection}>
-            <Text style={styles.inputLabel}>Digitar Número da Plaqueta</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Ex: 123456"
-              placeholderTextColor="#999"
-              keyboardType="numeric"
-              maxLength={10} // Ajuste conforme o padrão da plaqueta
-            />
-
-            <TouchableOpacity style={styles.saveButton} onPress={handleSearchPlaqueta}>
-              <Text style={styles.saveButtonText}>Salvar</Text>
-            </TouchableOpacity>
-          </View>
-
         </View>
-      </View>
-    </>
-  );
+     </>
+   );
 };
 
-// ---
-// ## Estilos
-// ---
 const styles = StyleSheet.create({
   container: {
     flex: 1,
