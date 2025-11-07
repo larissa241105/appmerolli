@@ -12,8 +12,8 @@ const SplashScreen = () => {
   function LogoTitle() {
     return (
       <Image 
-        style={styles.logo} // Estilo dedicado
-        source={require('../../assets/images/logo.png')}
+        style={styles.logo} 
+        source={require('../../assets/images/logo2.png')}
         accessibilityLabel="Logo da MerolliSoft"
       />
     );
@@ -26,17 +26,17 @@ const SplashScreen = () => {
   const handleConsulta = () => {
     router.push('escolhaOsConsulta');
   };
-  // -----------------------------
+
 
   return (
     <>
       <Stack.Screen
         options={{
           headerLeft: props => <LogoTitle {...props} />,
-          headerTitle: '', // Limpa o título central para que apenas o logo apareça
-          gestureEnabled: false, // Desabilita o gesto de voltar (boa prática com headerLeft customizado)
+          headerTitle: '', 
+          gestureEnabled: false, 
           headerStyle: {
-            backgroundColor: '#000', // Cor de fundo do cabeçalho
+            backgroundColor: '#000', 
           },
           headerTintColor: '#fff',
         }}
@@ -56,7 +56,7 @@ const SplashScreen = () => {
             />
           </TouchableOpacity>
 
-          {/* BOTÃO CONSULTA */}
+
           <TouchableOpacity 
             style={styles.optionButton}
             onPress={handleConsulta}
@@ -84,7 +84,7 @@ logo: {
     width: 140,
     height: 35,
     resizeMode: 'contain', 
-    // ADICIONE UM MARGIN para dar um pequeno espaçamento da borda, se desejar
+    
     marginLeft: 10,
 },
 
