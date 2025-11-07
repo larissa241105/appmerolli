@@ -26,6 +26,13 @@ export default function TelasLayout() {
         }} 
       />
 
+        <Stack.Screen 
+        name="fotoScreen" 
+        options={{ 
+           headerShown: false
+        }} 
+      />
+
       <Stack.Screen 
         name="splashScreen" 
        options={{

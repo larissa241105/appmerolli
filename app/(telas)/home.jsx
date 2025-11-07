@@ -13,9 +13,10 @@ const ButtonData = [
 ];
 
 export default function HomeScreen() {
-  
-  // ✅ CORREÇÃO: Mova o hook para DENTRO do componente
+    
   const params = useLocalSearchParams();
+  // 👇 ADICIONE ESTA LINHA
+  console.log("Tela HOME recebeu os parâmetros:", params);
 
   // ✅ CORREÇÃO: Mova a função que usa 'params' para DENTRO também
   const handleButtonPress = (title) => {
@@ -24,9 +25,18 @@ export default function HomeScreen() {
         pathname: 'cadastroScreen', // Certifique-se que o nome do arquivo/rota está correto
         params: params // Agora 'params' está acessível e correto
       });
-    } else if (title === 'Bipar Qrcode do cliente' || title === 'Bipar Qrcode antigo do cliente') {
-      router.push('qrcodeScreen');
-    } else {
+  } else if (title === 'Bipar Qrcode do cliente' || title === 'Bipar Qrcode antigo do cliente') {
+    router.push({
+        pathname: 'qrcodeScreen', // Certifique-se que o nome da rota está correto
+        params: params            // ✅ PASSA OS PARÂMETROS ADIANTE
+    });
+}
+     else if (title === 'Fotografar Qrcode do cliente' || title === 'Fotografar frente do produto'
+      || title === 'Fotografar lateral do produto' || title === 'FFotografar costa do produto')
+       {
+      router.push('fotoScreen');
+    }
+    else {
       console.log(`Botão "${title}" pressionado. Adicione a lógica de navegação.`);
     }
   };

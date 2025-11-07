@@ -1,98 +1,168 @@
-import { Stack, router } from 'expo-router';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
+import { useEffect, useState, } from 'react';
+import { StyleSheet, ActivityIndicator } from 'react-native';
+import axios from 'axios';
+import { useRouter } from 'expo-router';
+import { TouchableOpacity } from 'react-native';
 
-export default function ClienteUnidadeScreen() {
+const API_BASE_URL = 'https://orca-app-kokvo.ondigitalocean.app';
 
-  // Dados de exemplo com 3 itens
-  const dadosDosClientes = [
-    {
-      id: 1,
-      tagCliente: 'TAG_CLIENTE_001',
-      nossaTag: 'NOSSA_TAG_A',
-      nomeProduto: 'Produto A',
-      familia: 'Família Principal',
-      tipo: 'Tipo X',
-    },
-    {
-      id: 2,
-      tagCliente: 'TAG_CLIENTE_002',
-      nossaTag: 'NOSSA_TAG_B',
-      nomeProduto: 'Produto B',
-      familia: 'Família Secundária',
-      tipo: 'Tipo Y',
-    },
-    {
-      id: 3,
-      tagCliente: 'TAG_CLIENTE_003',
-      nossaTag: 'NOSSA_TAG_C',
-      nomeProduto: 'Produto C',
-      familia: 'Família Principal',
-      tipo: 'Tipo X',
-    },
-  ];
+export default function ListadeProdutoInventario() {
 
-  // Função para navegar para a tela de detalhes
-  const handleCardPress = (clienteId) => {
-    router.push('editarProdutoInventario');
+  const { osId } = useLocalSearchParams();
+  const router = useRouter(); 
+
+  const [itens, setItens] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (osId) {
+      async function fetchInventario() {
+        const apiUrl = `${API_BASE_URL}/api/inventario/consulta?osId=${osId}`;
+        console.log("Buscando dados em:", apiUrl);
+
+        try {
+          setLoading(true);
+          const response = await axios.get(apiUrl);
+          setItens(Array.isArray(response.data) ? response.data : []);
+
+        } catch (error) {
+          if (error.response && error.response.status === 404) {
+
+            console.log("Nenhum item encontrado.");
+          } else {
+            console.error("Erro ao buscar dados do inventário:", error);
+            Alert.alert("Erro de Conexão", "Não foi possível carregar os dados.");
+          }
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      fetchInventario();
+    } else {
+      Alert.alert("Erro", "ID da Ordem de Serviço não encontrado.");
+      setLoading(false);
+    }
+  }, [osId]);
+
+
+  const handleItemPress = (item) => {
+
+    router.push({
+      pathname: 'editarProdutoInventario', 
+      params: { item: JSON.stringify(item) }
+    });
   };
 
+  const renderItemCard = ({ item }) => (
+    <TouchableOpacity
+      style={styles.card} 
+      onPress={() => handleItemPress(item)}
+    >
+      <Text style={styles.cardTitle}>Tag: {item.nossa_tag}</Text>
+      <Text style={styles.cardText}>Descrição: {item.descricao}</Text>
+      <Text style={styles.cardStatus}>Status: {item.status_produto}</Text>
+    </TouchableOpacity>
+  );
+
+  if (loading) {
+    return (
+      <View style={styles.containerCenter}>
+        <ActivityIndicator size="large" color="#007BFF" />
+        <Text style={styles.loadingText}>Carregando inventário...</Text>
+      </View>
+    );
+  }
+
+  if (itens.length === 0) {
+    return (
+      <View style={styles.containerCenter}>
+        <Text style={styles.emptyText}>Nenhum item encontrado para esta OS.</Text>
+      </View>
+    );
+  }
+
   return (
-    <>
-      <Stack.Screen
-        options={{
-          title: 'MerolliSoft',
-          headerStyle: { backgroundColor: '#000000ff' },
-          headerTitleStyle: { fontWeight: 'bold', color: '#ffffffff' },
-          headerTintColor: '#ffffffff',
-        }}
+    <View style={styles.container}>
+      <Text style={styles.title}>Itens do Inventário (OS: {osId})</Text>
+      <FlatList
+        data={itens}
+        keyExtractor={(item) => String(item.id || item.nossa_tag)}
+        renderItem={renderItemCard} 
+        contentContainerStyle={{ paddingBottom: 20 }} 
       />
-      
-      <ScrollView style={styles.container}>
-        <Text style={styles.title}>Cliente - Unidade</Text>
-        
-        {dadosDosClientes.map((item) => (
-          // O TouchableOpacity torna a View clicável
-          <TouchableOpacity 
-            key={item.id} 
-            style={styles.card} 
-            onPress={() => handleCardPress(item.id)} // Chama a função de navegação ao pressionar
-          >
-            <Text style={styles.cardText}>Tag Cliente: {item.tagCliente}</Text>
-            <Text style={styles.cardText}>Nossa Tag: {item.nossaTag}</Text>
-            <Text style={styles.cardText}>Nome produto: {item.nomeProduto}</Text>
-            <Text style={styles.cardText}>Família: {item.familia}</Text>
-            <Text style={styles.cardText}>Tipo: {item.tipo}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </>
+    </View>
   );
 }
 
+
 const styles = StyleSheet.create({
+
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    paddingHorizontal: 16,
-    paddingVertical: 24,
+    backgroundColor: '#f0f2f5', 
+    paddingHorizontal: 10,
   },
-  title: {
-    fontSize: 26,
-    fontWeight: 'bold',
+
+  containerCenter: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f0f2f5',
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#555',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#555',
     textAlign: 'center',
-    marginBottom: 20,
-    color: '#333',
   },
+
+  title: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+    marginVertical: 15,
+    paddingHorizontal: 5,
+  },
+
   card: {
-    backgroundColor: '#f9f9f9',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
+    backgroundColor: '#ffffff', 
+    borderRadius: 8,         
+    padding: 16,            
+    marginVertical: 8,       
+    marginHorizontal: 5,    
+
+    elevation: 4,
+
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#222',
+    marginBottom: 5,
   },
   cardText: {
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 14,
+    color: '#555',
+    lineHeight: 20,
+    marginBottom: 4,
   },
+  cardStatus: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '500',
+    fontStyle: 'italic',
+    marginTop: 5,
+  }
 });
