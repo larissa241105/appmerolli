@@ -1,48 +1,83 @@
+import React, { useState } from 'react';
+// 1. IMPORT CORRIGIDO: Trocamos o 'useRoute' pelo 'useLocalSearchParams'
+import { useLocalSearchParams } from 'expo-router';
+import { ScrollView, Text, TextInput, TouchableOpacity, View, StyleSheet, Alert } from 'react-native';
 import { Stack } from 'expo-router';
-import { StyleSheet, View, Text, ScrollView, TextInput, TouchableOpacity } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { useState } from 'react';
+import { router } from 'expo-router';
+
+// Adicione a URL base da sua API aqui
+const API_BASE_URL = 'https://orca-app-kokvo.ondigitalocean.app';
 
 export default function EditarProdutoInventario() {
-  // Estados para cada campo do formulário, pré-preenchidos com os dados da imagem
-  const [tagCliente, setTagCliente] = useState('0123');
-  const [nossaTag, setNossaTag] = useState('0147');
-  const [nomeCliente, setNomeCliente] = useState('Samsung');
-  const [setor, setSetor] = useState('Sala de reunião');
-  const [colaborador, setColaborador] = useState('Fulano');
-  const [familia, setFamilia] = useState('informatica');
-  const [tipo, setTipo] = useState('notebook');
-  const [descricao, setDescricao] = useState('Notebook preto');
-  const [marca, setMarca] = useState('lenovo');
-  const [modelo, setModelo] = useState('54612V451D2CA');
-  const [numSerie, setNumSerie] = useState('78945126845');
-  const [imei1, setImei1] = useState('Imei 1');
-  const [imei2, setImei2] = useState('Imei 2');
-  const [status, setStatus] = useState('novo');
+  // 2. PEGANDO OS PARÂMETROS: Usamos o hook do expo-router
+  const params = useLocalSearchParams();
+  
+  
+  const item = JSON.parse(params.item);
 
-  const handleEditar = () => {
-    console.log('Dados do formulário:', {
+
+  const [tagCliente, setTagCliente] = useState(item.tag_cliente || '');
+  const [nossaTag, setNossaTag] = useState(item.nossa_tag || '');
+  const [nomeCliente, setNomeCliente] = useState(item.nome_cliente || '');
+  const [setor, setSetor] = useState(item.setor || '');
+  const [nomeColaborador, setNomeColaborador] = useState(item.nome_colaborador || ''); 
+  const [familia, setFamilia] = useState(item.familia || '');
+  const [tipo, setTipo] = useState(item.tipo || '');
+  const [descricao, setDescricao] = useState(item.descricao || '');
+  const [marca, setMarca] = useState(item.marca || '');
+  const [modelo, setModelo] = useState(item.modelo || '');
+  const [numeroSerie, setNumeroSerie] = useState(item.numero_serie || '');
+  const [imei1, setImei1] = useState(item.imei1 || '');
+  const [imei2, setImei2] = useState(item.imei2 || '');
+  const [statusProduto, setStatusProduto] = useState(item.status_produto || '');
+
+  const handleEditar = async () => {
+    const dadosAtualizados = {
       tagCliente,
       nossaTag,
       nomeCliente,
       setor,
-      
+      nomeColaborador,
+      familia,
+      tipo,
+      descricao,
+      marca,
+      modelo,
+      numeroSerie,
+      imei1,
+      imei2,
+      statusProduto,
+    };
+
+    try {
+    // A URL usa 'item.id', que é perfeito!
+    const response = await fetch(`${API_BASE_URL}/api/inventario/${item.id}`, {
+      method: 'PUT', // Método PUT
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dadosAtualizados),
     });
-    alert('Produto editado!');
+      const result = await response.json();
+
+      if (response.ok) {
+        Alert.alert('Sucesso', 'Produto editado com sucesso!');
+        router.back();
+      } else {
+        Alert.alert('Erro', result.message || 'Não foi possível editar o produto.');
+      }
+    } catch (error) {
+      console.error('Erro na requisição:', error);
+      Alert.alert('Erro', 'Ocorreu um erro de conexão.');
+    }
   };
 
   return (
     <>
       <Stack.Screen
         options={{
-          title: 'MerolliSoft',
-          headerStyle: {
-            backgroundColor: '#000000ff',
-          },
-          headerTitleStyle: {
-            fontWeight: 'bold',
-            color: '#ffffffff',
-          },
+          title: 'Editar Item', 
+          headerStyle: { backgroundColor: '#000000ff' },
+          headerTitleStyle: { fontWeight: 'bold', color: '#ffffffff' },
           headerTintColor: '#ffffffff',
         }}
       />
@@ -64,44 +99,28 @@ export default function EditarProdutoInventario() {
         <TextInput style={styles.input} value={setor} onChangeText={setSetor} />
 
         <Text style={styles.label}>Nome do colaborador</Text>
-        <TextInput style={styles.input} value={colaborador} onChangeText={setColaborador} />
+        <TextInput style={styles.input} value={nomeColaborador} onChangeText={setNomeColaborador} />
         
         {/* --- Pickers (Dropdowns) --- */}
         <Text style={styles.label}>Família</Text>
-        <View style={styles.pickerContainer}>
-          <Picker selectedValue={familia} onValueChange={(itemValue) => setFamilia(itemValue)}>
-            <Picker.Item label="Informática" value="informatica" />
-            <Picker.Item label="Mobiliário" value="mobiliario" />
-          </Picker>
-        </View>
+         <TextInput style={styles.input} value={familia} onChangeText={setFamilia} />
+
 
         <Text style={styles.label}>Tipo</Text>
-        <View style={styles.pickerContainer}>
-          <Picker selectedValue={tipo} onValueChange={(itemValue) => setTipo(itemValue)}>
-            <Picker.Item label="Notebook" value="notebook" />
-            <Picker.Item label="Desktop" value="desktop" />
-            <Picker.Item label="Monitor" value="monitor" />
-          </Picker>
-        </View>
+         <TextInput style={styles.input} value={tipo} onChangeText={setTipo} />
+
 
         <Text style={styles.label}>Descrição do produto</Text>
         <TextInput style={styles.input} value={descricao} onChangeText={setDescricao} />
 
         <Text style={styles.label}>Marca</Text>
-        <View style={styles.pickerContainer}>
-          <Picker selectedValue={marca} onValueChange={(itemValue) => setMarca(itemValue)}>
-            <Picker.Item label="Lenovo" value="lenovo" />
-            <Picker.Item label="Dell" value="dell" />
-            <Picker.Item label="HP" value="hp" />
-            <Picker.Item label="Samsung" value="samsung" />
-          </Picker>
-        </View>
+        <TextInput style={styles.input} value={marca} onChangeText={setMarca} />
 
         <Text style={styles.label}>Modelo</Text>
         <TextInput style={styles.input} value={modelo} onChangeText={setModelo} />
 
         <Text style={styles.label}>N° de série</Text>
-        <TextInput style={styles.input} value={numSerie} onChangeText={setNumSerie} />
+        <TextInput style={styles.input} value={numeroSerie} onChangeText={setNumeroSerie} />
 
         <Text style={styles.label}>Imei 1</Text>
         <TextInput style={styles.input} value={imei1} onChangeText={setImei1} />
@@ -111,64 +130,48 @@ export default function EditarProdutoInventario() {
 
         <Text style={styles.label}>Status do produto</Text>
         <View style={styles.pickerContainer}>
-          <Picker selectedValue={status} onValueChange={(itemValue) => setStatus(itemValue)}>
-            <Picker.Item label="Novo em caixa" value="novo" />
-            <Picker.Item label="Em uso" value="em_uso" />
-            <Picker.Item label="Para reparo" value="reparo" />
+          <Picker selectedValue={statusProduto} onValueChange={(itemValue) => setStatusProduto(itemValue)}>
+             <Picker.Item label="Novo na caixa" value="novo" color="#000" />
+          <Picker.Item label="Normal em uso" value="normal_em_uso" color="#000" />
+          <Picker.Item label="Defeito em uso" value="defeito_em_uso" color="#000" />
+          <Picker.Item label="Sucata" value="sucata" color="#000" />
           </Picker>
         </View>
 
         <TouchableOpacity style={styles.button} onPress={handleEditar}>
-          <Text style={styles.buttonText}>Editar</Text>
+          <Text style={styles.buttonText}>Salvar</Text>
         </TouchableOpacity>
       </ScrollView>
     </>
   );
 }
 
+// (Adicione seus estilos 'styles' aqui)
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    paddingHorizontal: 20,
-    paddingTop: 10,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginVertical: 20,
-    color: '#333',
-  },
-  label: {
-    fontSize: 16,
-    color: '#555',
-    marginBottom: 5,
-    marginTop: 10,
-  },
+  container: { flex: 1, padding: 16, backgroundColor: '#fff' },
+  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 16 },
+  label: { fontSize: 16, marginTop: 10, marginBottom: 5 },
   input: {
     borderWidth: 1,
     borderColor: '#ccc',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
+    borderRadius: 5,
+    padding: 10,
     fontSize: 16,
-    backgroundColor: '#f9f9f9',
   },
   pickerContainer: {
     borderWidth: 1,
     borderColor: '#ccc',
-    borderRadius: 8,
-    backgroundColor: '#f9f9f9',
-    justifyContent: 'center', 
+    borderRadius: 5,
   },
   button: {
-    backgroundColor: '#0b4f05ff',
-    paddingVertical: 15,
-    borderRadius: 8,
+    backgroundColor: '#051779ff',
+    padding: 15,
+    width: '80%',
+    borderRadius: 5,
+    alignSelf:'center',
     alignItems: 'center',
-    marginTop: 30,
-    marginBottom: 40, 
+    marginTop: 25,
+    marginBottom: 30,
   },
   buttonText: {
     color: '#fff',

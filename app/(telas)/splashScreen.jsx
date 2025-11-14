@@ -73,21 +73,20 @@ const SplashScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-logo: {
-    width: 140,
-    height: 35,
-    resizeMode: 'contain', 
-    
-    marginLeft: 10,
-},
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: '#fff',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+  logo: {
+      width: 140,
+      height: 35,
+      resizeMode: 'contain', 
 
+      marginLeft: 10,
+  },
 
   optionsContainer: {
     width: '100%',

@@ -14,16 +14,7 @@ const QrcodeScreen = () => {
 
    const CADASTRO_ROUTE = 'home'; 
 
-   function LogoTitle() {
-     return (
-        <Image
-          style={styles.logo}
-          source={require('../../assets/images/logo.png')}
-          accessibilityLabel="Logo da MerolliSoft"
-        />
-     );
-   }
-
+  
    const handleScanQrcode = () => {
      // Navega para a tela de leitura de QR code
    router.push({
@@ -52,17 +43,15 @@ const QrcodeScreen = () => {
 
    return (
      <>
-        <Stack.Screen
-          options={{
-             headerLeft: props => <LogoTitle {...props} />,
-             headerTitle: '',
-             gestureEnabled: true,
-             headerStyle: {
-               backgroundColor: '#000',
-             },
-             headerTintColor: '#fff',
-          }}
-        />
+       <Stack.Screen
+        options={{
+          title: 'MerolliSoft',
+          headerBackTitle: '',
+          headerStyle: { backgroundColor: '#000' },
+          headerTitleStyle: { fontWeight: 'bold', color: '#fff' },
+          headerTintColor: '#fff',
+        }}
+      />
 
         <View style={styles.container}>
           <View style={styles.contentContainer}>
