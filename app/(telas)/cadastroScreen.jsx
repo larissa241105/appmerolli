@@ -15,6 +15,10 @@ import {
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import { Picker } from '@react-native-picker/picker';
 import axios from 'axios';
+import * as MediaLibrary from 'expo-media-library';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 
 
 const API_BASE_URL = 'https://orca-app-kokvo.ondigitalocean.app';
@@ -119,6 +123,32 @@ export default function CadastroScreen() {
   const [marcaSearch, setMarcaSearch] = useState('');
   const [marcaOptions, setMarcaOptions] = useState([]);
   const [filteredMarcaOptions, setFilteredMarcaOptions] = useState([]);
+
+  //Salvar as fotos
+  const [fotoUri, setFotoUri] = useState(null);
+  const [galleryPermission, requestGalleryPermission] = MediaLibrary.usePermissions({ writeOnly: true });
+  const [isSaving, setIsSaving] = useState(false);
+
+
+  useFocusEffect(
+    useCallback(() => {
+      const checkPendingPhoto = async () => {
+        try {
+          const uri = await AsyncStorage.getItem('pendingPhotoUri');
+          if (uri) {
+            console.log("Foto pendente encontrada:", uri);
+            setFotoUri(uri); // Salva a URI no estado
+            await AsyncStorage.removeItem('pendingPhotoUri'); // Limpa para não usar de novo
+          }
+        } catch (e) {
+          console.error("Erro ao buscar foto pendente:", e);
+        }
+      };
+
+      checkPendingPhoto();
+    }, [])
+  );
+
 
   
   // --- Efeito para buscar parâmetros da rota ---
@@ -253,19 +283,27 @@ export default function CadastroScreen() {
 
 
   const handleSalvar = async () => {
+    // 1. Bloqueia múltiplos cliques
+    if (isSaving) return;
+
     const osIdFinal = osId;
     const pedidoNumeroFinal = pedidoNumero;
 
+    // 2. Validações de Navegação
     if (!osIdFinal || !pedidoNumeroFinal) {
-      console.error('Dados de navegação ausentes nos estados:', { osIdFinal, pedidoNumeroFinal });
-      Alert.alert('Erro de Sistema', 'OS ID e/ou Número do Pedido não foram recebidos corretamente. Tente novamente.');
+      console.error('Dados de navegação ausentes:', { osIdFinal, pedidoNumeroFinal });
+      Alert.alert('Erro de Sistema', 'OS ID e/ou Número do Pedido não foram recebidos corretamente.');
       return;
     }
 
+    // 3. Validações de Campos Obrigatórios
     if (!nossaTag || !nomeCliente || !selectedStatus || !setor || !familia || !tipo || !marca) {
       Alert.alert('Erro', 'Por favor, preencha todos os campos obrigatórios (marcados com *).');
       return;
     }
+
+    // Ativa o loading
+    setIsSaving(true);
 
     const payload = {
       osId: osIdFinal,
@@ -283,21 +321,59 @@ export default function CadastroScreen() {
       numeroSerie,
       imei1,
       imei2,
-      statusProduto: selectedStatus
+      statusProduto: selectedStatus,
+      // Se sua API precisar receber o caminho da foto, descomente abaixo:
+      // foto_local: fotoUri 
     };
 
     try {
+      // --- PASSO 1: Tenta salvar no Banco de Dados (API) ---
       await axios.post(`${API_BASE_URL}/api/inventario`, payload);
       
-      Alert.alert('Sucesso!', 'Item cadastrado no inventário com sucesso.', [
+      console.log("✅ Cadastro salvo na API com sucesso!");
+      
+      let mensagemSucesso = 'Item cadastrado no inventário com sucesso.';
+
+      // --- PASSO 2: Tenta salvar a FOTO na Galeria (Somente se a API passou) ---
+      if (fotoUri) {
+        // Verifica se já tem permissão
+        if (!galleryPermission?.granted) {
+          // Pede permissão
+          const permissionResponse = await requestGalleryPermission();
+          
+          if (!permissionResponse.granted) {
+            // Se o usuário negar, avisamos que o item foi salvo, mas a foto não
+            Alert.alert(
+              'Cadastro Salvo (Sem Foto)', 
+              'O item foi cadastrado, mas a foto não foi salva pois você negou a permissão da galeria.',
+              [{ text: 'OK', onPress: () => router.back() }]
+            );
+            return; // Encerra aqui
+          }
+        }
+
+        // Salva efetivamente
+        await MediaLibrary.saveToLibraryAsync(fotoUri);
+        mensagemSucesso += ' E a foto foi salva na sua galeria! 📸';
+      }
+
+      // --- PASSO 3: Sucesso Total ---
+      Alert.alert('Sucesso!', mensagemSucesso, [
         { text: 'OK', onPress: () => router.back() }
       ]);
+
     } catch (error) {
-      console.error('Erro ao salvar inventário:', error.response?.data || error.message);
+      // Tratamento de Erro (API ou Galeria)
+      console.error('Erro ao salvar:', error.response?.data || error.message);
+      
       Alert.alert(
-        'Falha no Cadastro',
-        `Não foi possível salvar o item. Detalhes: ${error.response?.data?.message || 'Erro de conexão ou servidor.'}`
+        'Falha no Processo',
+        `Não foi possível concluir a operação. \nDetalhes: ${error.response?.data?.message || error.message || 'Erro desconhecido.'}`
       );
+
+    } finally {
+      // Desativa o loading independente do resultado
+      setIsSaving(false);
     }
   };
 

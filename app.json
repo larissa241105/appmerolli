@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "MerolliApp",
-    "slug": "MerolliApp",
+    "slug": "Merolli",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/logo.png",
@@ -9,9 +9,12 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "Merolli",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
-
     "android": {
       "adaptiveIcon": {},
       "edgeToEdgeEnabled": true,
@@ -27,7 +30,6 @@
         "android.permission.READ_MEDIA_VIDEO",
         "android.permission.READ_MEDIA_AUDIO"
       ],
-
       "package": "com.larissa241105.MerolliApp"
     },
     "web": {
@@ -63,11 +65,10 @@
         }
       ],
       "expo-web-browser",
-      ["expo-build-properties",
-      {
-          "android": {
-         
-          }
+      [
+        "expo-build-properties",
+        {
+          "android": {}
         }
       ]
     ],
@@ -78,8 +79,14 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "3c81aac7-4e3e-4579-96de-d511777a8998"
+        "projectId": "488a27df-3572-4d3c-a562-c10bfde8af4b"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": ""
     }
   }
 }
