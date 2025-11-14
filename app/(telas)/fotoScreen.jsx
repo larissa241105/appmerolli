@@ -1,16 +1,16 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useState, useRef } from 'react';
 import { Button, StyleSheet, Text, View, Alert, TouchableOpacity, ImageBackground, ActivityIndicator } from 'react-native';
-// Certifique-se de importar o MediaLibrary, router, useLocalSearchParams e MaterialIcons
 import * as MediaLibrary from 'expo-media-library'; 
 import { router, useLocalSearchParams } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
 
 export default function TelaCamera() {
    const cameraRef = useRef(null);
   
-   // 💡 INFO 1: Obter a tagDoCliente dos parâmetros de rota
+
    const params = useLocalSearchParams();
    const { tag } = params; 
 
@@ -23,12 +23,11 @@ export default function TelaCamera() {
    const [saving, setSaving] = useState(false);
    const [facing, setFacing] = useState("back");
 
-   // 1. Tela de Carregamento enquanto a permissão é verificada
    if (!permission) {
      return <View style={styles.container} />;
    }
 
-   // 2. Tela para solicitar a permissão caso ainda não tenha sido dada
+
    if (!permission.granted) {
      return (
         <View style={styles.permissionContainer}>
@@ -50,66 +49,54 @@ export default function TelaCamera() {
      }
    };
 
- const savePicture = async () => {
-     // Verifica se temos permissão para salvar na galeria
-     if (!galleryPermission?.granted) {
-        const perm = await requestGalleryPermission();
-        if (!perm.granted) {
-          Alert.alert("Permissão Negada", "Você precisa permitir o acesso à galeria para salvar fotos.");
-          return;
-        }
-     }
+ const handleConfirmPhoto = async () => {
 
      if (!photo) {
-        Alert.alert("Erro", "Nenhuma foto para salvar.");
-        return;
+       Alert.alert("Erro", "Nenhuma foto para salvar.");
+       return;
      }
 
      setSaving(true);
 
      try {
-        // --- 1. Geração do nome do arquivo ---
-        const now = new Date();
-        const dia = String(now.getDate()).padStart(2, '0');
-        const mes = String(now.getMonth() + 1).padStart(2, '0');
-        const ano = now.getFullYear();
-        const hora = String(now.getHours()).padStart(2, '0');
-        const min = String(now.getMinutes()).padStart(2, '0');
-        const seg = String(now.getSeconds()).padStart(2, '0');
+       // --- 1. Geração do nome do arquivo (Seu código original, está perfeito) ---
+       const now = new Date();
+       const dia = String(now.getDate()).padStart(2, '0');
+       const mes = String(now.getMonth() + 1).padStart(2, '0');
+       const ano = now.getFullYear();
+       const hora = String(now.getHours()).padStart(2, '0');
+       const min = String(now.getMinutes()).padStart(2, '0');
+       const seg = String(now.getSeconds()).padStart(2, '0');
 
-        // Formato: tagdocliente_dia-mes-ano_hora-min-segundo_nomedapessoa.jpg
-        const filename = `${tag || 'SEMTAG'}_${dia}-${mes}-${ano}_${hora}-${min}-${seg}.jpg`;
-    
-        // --- 2. Copiar/Mover e Renomear o Arquivo ---
-    
-        // Diretório onde o arquivo renomeado será salvo no cache local
-        const destinationDir = FileSystem.documentDirectory + 'CameraAssets/';
-        const newPath = destinationDir + filename;
+       // Usamos a 'tag' vinda dos params e 'SEMTAG' como fallback
+       const filename = `${tag || 'SEMTAG'}_${dia}-${mes}-${ano}_${hora}-${min}-${seg}.jpg`;
+ 
+       // --- 2. Copiar/Mover o Arquivo (Seu código original, está perfeito) ---
+       const destinationDir = FileSystem.documentDirectory + 'CameraAssets/';
+       const newPath = destinationDir + filename;
 
-        // 1. Garante que o diretório de destino exista
-        await FileSystem.makeDirectoryAsync(destinationDir, { intermediates: true });
+       await FileSystem.makeDirectoryAsync(destinationDir, { intermediates: true });
 
-        // 2. Copia o arquivo da URI temporária da foto (photo) para o novoPath (com o novo nome)
-        await FileSystem.copyAsync({
-          from: photo,
-          to: newPath,
-        });
+       await FileSystem.copyAsync({
+         from: photo,
+         to: newPath,
+       });
 
-        // --- 3. Salvar na Galeria ---
-        // O MediaLibrary salvará o arquivo que está em newPath
-        await MediaLibrary.saveToLibraryAsync(newPath);
+       await AsyncStorage.setItem('pendingPhotoUri', newPath);
+       
+       // --- 4. (NOVO) Voltar para a tela de Cadastro ---
+       if (router.canGoBack()) {
+         router.back();
+       }
 
-        Alert.alert("Sucesso!", `Foto salva como: ${filename} ✅`);
-        setPhoto(null); // Volta para a tela da câmera
      } catch (err) {
-        console.error("Erro ao salvar/renomear:", err);
-        // Alerta genérico em caso de falha
-        Alert.alert("Erro", "Não foi possível salvar a foto com o nome desejado. Verifique os logs.");
+       console.error("Erro ao preparar foto:", err);
+       Alert.alert("Erro", "Não foi possível preparar a foto. Tente novamente.");
      } finally {
-        setSaving(false);
+       setSaving(false);
      }
    };
-   
+
    // Helper function para renomear e salvar (requer expo-file-system)
    const saveWithCustomName = async (uri, customFilename) => {
      // **⚠️ ATENÇÃO:** Para que esta função funcione, você deve importar:
@@ -150,10 +137,10 @@ export default function TelaCamera() {
                   <MaterialIcons name="cancel" size={42} color="#fff" />
                   <Text style={styles.iconText}>Tentar Novamente</Text>
                </TouchableOpacity>
-               <TouchableOpacity onPress={savePicture} style={styles.iconBtn}>
-                  <MaterialIcons name="check-circle" size={42} color="#fff" />
-                  <Text style={styles.iconText}>Salvar</Text>
-               </TouchableOpacity>
+            <TouchableOpacity onPress={handleConfirmPhoto} style={styles.iconBtn}>
+       <MaterialIcons name="check-circle" size={42} color="#fff" />
+       <Text style={styles.iconText}>Salvar</Text> 
+   </TouchableOpacity>
              </View>
           </ImageBackground>
         ) : (
@@ -163,6 +150,7 @@ export default function TelaCamera() {
                style={StyleSheet.absoluteFill} // Câmera ocupa todo o espaço
                facing={facing}
                ref={cameraRef}
+               playSoundOnCapture={false}
              />
              {/* BOTÕES FICAM AQUI, SOBRE A CÂMERA */}
              <View style={styles.overlayContainer}>
