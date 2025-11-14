@@ -62,13 +62,11 @@
           }
         }
       ],
-      "expo-barcode-scanner",
       "expo-web-browser",
       ["expo-build-properties",
       {
           "android": {
          
-            "kotlinVersion": "2.0.0" 
           }
         }
       ]

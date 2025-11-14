@@ -9,7 +9,7 @@ export default function BiparQrCodeScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false); 
 
-    const CADASTRO_ROUTE = 'home'; // **Ajuste para a sua rota real**
+    const CADASTRO_ROUTE = 'home'; 
     const { osId, pedidoNumero } = useLocalSearchParams();
     console.log("Tela QRCODE recebeu os parâmetros:", { osId, pedidoNumero });
 
@@ -27,8 +27,8 @@ const handleBarCodeScanned = ({ type, data }) => {
 
                    const paramsParaNavegar = { 
                 tag: data,
-                osId: osId,           // vem dos params recebidos
-                pedidoNumero: pedidoNumero  // vem dos params recebidos
+                osId: osId,           
+                pedidoNumero: pedidoNumero  
               };
 
         console.log("Tela QRCODE vai enviar para Cadastro:", paramsParaNavegar);

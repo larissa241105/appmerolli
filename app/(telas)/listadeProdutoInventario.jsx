@@ -5,6 +5,9 @@ import { StyleSheet, ActivityIndicator } from 'react-native';
 import axios from 'axios';
 import { useRouter } from 'expo-router';
 import { TouchableOpacity } from 'react-native';
+import { useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
+import { router } from 'expo-router';
 
 const API_BASE_URL = 'https://orca-app-kokvo.ondigitalocean.app';
 
@@ -16,8 +19,10 @@ export default function ListadeProdutoInventario() {
   const [itens, setItens] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (osId) {
+  useFocusEffect(
+    
+    useCallback(() => {
+      
       async function fetchInventario() {
         const apiUrl = `${API_BASE_URL}/api/inventario/consulta?osId=${osId}`;
         console.log("Buscando dados em:", apiUrl);
@@ -26,11 +31,10 @@ export default function ListadeProdutoInventario() {
           setLoading(true);
           const response = await axios.get(apiUrl);
           setItens(Array.isArray(response.data) ? response.data : []);
-
         } catch (error) {
           if (error.response && error.response.status === 404) {
-
             console.log("Nenhum item encontrado.");
+            setItens([]); 
           } else {
             console.error("Erro ao buscar dados do inventário:", error);
             Alert.alert("Erro de Conexão", "Não foi possível carregar os dados.");
@@ -40,12 +44,18 @@ export default function ListadeProdutoInventario() {
         }
       }
 
-      fetchInventario();
-    } else {
-      Alert.alert("Erro", "ID da Ordem de Serviço não encontrado.");
-      setLoading(false);
-    }
-  }, [osId]);
+      if (osId) {
+        fetchInventario();
+      } else {
+        Alert.alert("Erro", "ID da Ordem de Serviço não encontrado.");
+        setLoading(false);
+      }
+
+      return () => {
+      };
+
+    }, [osId])
+  );
 
 
   const handleItemPress = (item) => {

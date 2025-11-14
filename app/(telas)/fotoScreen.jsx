@@ -109,6 +109,7 @@ export default function TelaCamera() {
         setSaving(false);
      }
    };
+   
    // Helper function para renomear e salvar (requer expo-file-system)
    const saveWithCustomName = async (uri, customFilename) => {
      // **⚠️ ATENÇÃO:** Para que esta função funcione, você deve importar:

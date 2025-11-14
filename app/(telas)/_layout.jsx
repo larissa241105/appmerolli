@@ -8,14 +8,14 @@ export default function TelasLayout() {
         name="home" 
         options={{ 
           title: 'MerolliSoft', 
-          headerBackTitle: '', // This removes the back button text
+          headerBackTitle: '',
         }} 
       />
       <Stack.Screen 
         name="cadastroScreen" 
         options={{ 
           title: 'Cadastro do Inventário', 
-          headerBackTitle: '', // This removes the back button text
+          headerBackTitle: '',
         }} 
       />
       

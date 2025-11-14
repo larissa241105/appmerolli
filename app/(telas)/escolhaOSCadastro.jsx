@@ -1,44 +1,27 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-  // --- NOVOS IMPORTS ---
-  Modal,
-  FlatList,
-  SafeAreaView,
-  Pressable, // Melhor que TouchableOpacity para itens de lista
-  TextInput, // (Opcional, para adicionar busca no futuro)
+import React, { useState, useEffect, useMemo } from 'react';
+import {View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, StyleSheet, Modal, FlatList, Pressable, 
 } from 'react-native';
-// ❌ REMOVIDO: import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
 import axios from 'axios';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const API_BASE_URL = 'https://orca-app-kokvo.ondigitalocean.app';
 
-// ========================================
-// FUNÇÃO DE NORMALIZAÇÃO (Sem alterações)
-// ========================================
+
 const normalizar = (valor) => {
   if (valor === null || valor === undefined) return "";
   return String(valor).trim();
 };
 
-// ========================================
-// COMPONENTE 1: O NOVO MODAL SELETOR (Reutilizável)
-// ========================================
+
 const SelectorModal = ({
   visible,
   onClose,
   options,
   onSelect,
   title,
-  labelKey, // A chave do objeto a ser mostrada (ex: "razao_social")
-  valueKey, // A chave do objeto a ser usada como valor (ex: "cnpj")
+  labelKey,
+  valueKey, 
 }) => {
   return (
     <Modal
@@ -67,7 +50,7 @@ const SelectorModal = ({
               <Pressable
                 style={styles.modalItem}
                 onPress={() => {
-                  onSelect(item[valueKey]); // Envia apenas o valor (ex: o CNPJ)
+                  onSelect(item[valueKey]); 
                   onClose();
                 }}
               >
@@ -81,9 +64,7 @@ const SelectorModal = ({
   );
 };
 
-// ========================================
-// COMPONENTE 2: O DISPLAY DO PICKER (Reutilizável)
-// ========================================
+
 const PickerDisplay = ({ label, value, onPress, disabled, placeholder }) => {
   const displayValue = value ? String(value) : placeholder;
   const textStyle = value ? styles.pickerDisplayText : styles.pickerPlaceholderText;
@@ -103,13 +84,9 @@ const PickerDisplay = ({ label, value, onPress, disabled, placeholder }) => {
   );
 };
 
-// ========================================
-// COMPONENTE 3: SEU COMPONENTE PRINCIPAL (Refatorado)
-// ========================================
 export default function EscolhaOSCadastro() {
   console.log("--- COMPONENTE RENDERIZOU ---");
   const router = useRouter();
-  // ❌ REMOVIDO: timeoutRef não é mais necessário
 
   const [loading, setLoading] = useState(true);
   const [navegando, setNavegando] = useState(false);
@@ -123,15 +100,11 @@ export default function EscolhaOSCadastro() {
     os: "",
   });
 
-  // --- NOVO ESTADO PARA O MODAL ---
   const [modalState, setModalState] = useState({
     visible: false,
-    type: null, // 'cliente', 'pedido', 'unidade', 'os'
+    type: null, 
   });
 
-  // ========================================
-  // BUSCAR DADOS (Sem alterações)
-  // ========================================
   useEffect(() => {
     async function fetchData() {
       try {
@@ -152,13 +125,6 @@ export default function EscolhaOSCadastro() {
     fetchData();
   }, []);
 
-  // ❌ REMOVIDO: useEffect de limpeza do timeoutRef
-
-  // ========================================
-  // LISTAS MEMORIZADAS (useMemo)
-  // Ajustadas para gerar os dados que o modal precisa
-  // ========================================
-
   const listaClientes = useMemo(() => {
     const map = new Map();
     listaPedidosUnidades.forEach(item => {
@@ -175,7 +141,7 @@ export default function EscolhaOSCadastro() {
     }));
   }, [listaPedidosUnidades]);
   
-  // Criar um Map para buscar rapidamente o NOME do cliente pelo CNPJ
+
   const clienteMap = useMemo(() => {
     return new Map(listaClientes.map(c => [c.value, c.label]));
   }, [listaClientes]);
@@ -384,7 +350,7 @@ export default function EscolhaOSCadastro() {
 
           <PickerDisplay
             label="1. Cliente"
-            value={clienteMap.get(selecoes.cliente)} // Mostra a Razão Social
+            value={clienteMap.get(selecoes.cliente)} 
             placeholder="Selecione o Cliente"
             onPress={() => openModal('cliente')}
             disabled={navegando}
@@ -411,7 +377,7 @@ export default function EscolhaOSCadastro() {
 
           <PickerDisplay
             label="4. Ordem de Serviço"
-            value={osMap.get(selecoes.os)} // Mostra o Número da OS
+            value={osMap.get(selecoes.os)}
             placeholder="Selecione a OS"
             onPress={() => openModal('os')}
             disabled={navegando || !selecoes.unidade || listaOrdensServico.length === 0}
@@ -436,10 +402,7 @@ export default function EscolhaOSCadastro() {
   );
 }
 
-// ========================================
-// STYLESHEET
-// Adicionei os novos estilos para o Modal
-// ========================================
+
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
@@ -474,7 +437,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   
-  // --- ESTILOS DO NOVO PICKERDISPLAY ---
+
   pickerContainer: {
     marginBottom: 15,
   },
@@ -511,7 +474,6 @@ const styles = StyleSheet.create({
     color: '#777',
   },
 
-  // --- ESTILOS DO MODAL ---
   modalContainer: {
     flex: 1,
     backgroundColor: '#fff',
@@ -555,7 +517,6 @@ const styles = StyleSheet.create({
     color: '#999',
   },
   
-  // --- BOTÃO SALVAR (Sem alterações) ---
   button: {
     backgroundColor: '#007AFF',
     padding: 15,
@@ -572,7 +533,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 
-  // --- DEBUG (Sem alterações) ---
   debugContainer: {
     marginTop: 20,
     padding: 10,
