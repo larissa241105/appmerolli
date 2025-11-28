@@ -4,6 +4,9 @@ import {View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Styl
 import { useRouter } from 'expo-router';
 import axios from 'axios';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MaterialIcons } from '@expo/vector-icons';
+import { Stack } from 'expo-router';
 
 const API_BASE_URL = 'https://orca-app-kokvo.ondigitalocean.app';
 
@@ -85,8 +88,9 @@ const PickerDisplay = ({ label, value, onPress, disabled, placeholder }) => {
 };
 
 export default function EscolhaOSCadastro() {
-  console.log("--- COMPONENTE RENDERIZOU ---");
   const router = useRouter();
+
+      const insets = useSafeAreaInsets();
 
   const [loading, setLoading] = useState(true);
   const [navegando, setNavegando] = useState(false);
@@ -279,7 +283,6 @@ export default function EscolhaOSCadastro() {
 
     try {
       if (navegando) return;
-
       const { cliente, pedido, unidade, os } = selecoes;
       if (!cliente || !pedido || !unidade || !os) {
         Alert.alert("Atenção", "Por favor, selecione todas as opções.");
@@ -297,15 +300,15 @@ export default function EscolhaOSCadastro() {
 
       const params = {
         osId: String(os),
-        clienteCnpj: String(cliente),
+        cliente: String(cliente),
         unidadeNome: String(unidade),
-        pedidoNumero: String(pedido),
+        pedidoNumero: String(pedido)
       };
 
       console.log("📤 Navegando com params:", params);
 
       router.push({
-        pathname: "/home",
+        pathname: "home",
         params: params
       });
     
@@ -332,7 +335,13 @@ export default function EscolhaOSCadastro() {
 
   return (
     <>
-
+     <Stack.Screen options={{ headerShown: false }} />
+          <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                <MaterialIcons name="arrow-back" size={28} color="#ffffffff" />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>O.S Cadastro</Text>
+          </View>
       <SelectorModal
         visible={modalState.visible}
         onClose={() => setModalState({ visible: false, type: null })}
@@ -409,6 +418,25 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: '#f5f5f5',
   },
+   header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingBottom: 15,
+        backgroundColor: '#000000ff', 
+        borderBottomWidth: 1,
+        borderBottomColor: '#eee',
+        zIndex: 10,
+    },
+    backBtn: {
+        padding: 5, 
+        marginRight: 10,
+    },
+    headerTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#ffffffff',
+    },
   formContainer: {
     backgroundColor: '#ffffff',
     borderRadius: 8,

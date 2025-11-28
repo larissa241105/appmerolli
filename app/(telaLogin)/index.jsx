@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { FloatingLabelInput } from 'react-native-floating-label-input';
 import axios from 'axios';
@@ -21,7 +21,7 @@ export default function LoginScreen() {
     setIsLoading(true);
 
     try {
-      const response = await axios.post(`${API_URL}/api/login/analista`, {
+      const response = await axios.post(`${API_URL}/api/login/auxiliar`, {
         usuario: cpf,
         senha: password,   
       });
@@ -48,126 +48,132 @@ export default function LoginScreen() {
       setIsLoading(false);
     }
   };
-  return (
-    <View style={styles.container}>
-      <View style={styles.containerlogo}>
-  <Image source={require('../../assets/images/logo.png')} style={styles.logo} />
-      </View>
-      <View style={styles.inputContainer}>
-        <Text style={styles.textLogin}>Login</Text>
-        <FloatingLabelInput
-          label="Cpf"
-          keyboardType="numeric"
-          mask="123.456.789-00"
-          staticLabel
-          containerStyles={{
-          borderWidth: 2,
-          paddingHorizontal: 10,
-          backgroundColor: '#ffffffff',
-          borderColor: '#494949ff',
-          borderRadius: 8,
-          height: 50
-          }}
+   return (
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: '#ffff' }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20} // Ajuste fino opcional
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.containerlogo}>
+          <Image source={require('../../assets/images/logo.png')} style={styles.logo} />
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Text style={styles.textLogin}>Login</Text>
+          <FloatingLabelInput
+            label="Cpf"
+            keyboardType="numeric"
+            mask="123.456.789-00"
+            staticLabel
+            containerStyles={{
+              borderWidth: 2,
+              paddingHorizontal: 10,
+              backgroundColor: '#ffffffff',
+              borderColor: '#494949ff',
+              borderRadius: 8,
+              height: 50
+            }}
             customLabelStyles={{
-          colorFocused: '#262626ff',
-          fontSizeFocused: 12,
-          }}
+              colorFocused: '#262626ff',
+              fontSizeFocused: 12,
+            }}
             labelStyles={{
-          backgroundColor: '#ffffffff',
-          paddingHorizontal: 5,
-           }}
+              backgroundColor: '#ffffffff',
+              paddingHorizontal: 5,
+            }}
             inputStyles={{
-          color: '#262626ff',
-          paddingHorizontal: 10,
-           }}
-          value={cpf}
-          onChangeText={value => setCpf(value)}
-        />
+              color: '#262626ff',
+              paddingHorizontal: 10,
+            }}
+            value={cpf}
+            onChangeText={value => setCpf(value)}
+          />
+        </View>
 
-      </View>
-      <View style={styles.inputContainer}>
-        <FloatingLabelInput
-          label="Senha"
-          staticLabel
-
-          containerStyles={{
-          borderWidth: 2,
-          paddingHorizontal: 10,
-          backgroundColor: '#fff',
-          borderColor: '#494949ff',
-          borderRadius: 8,
-          height: 53
-        }}
-          customLabelStyles={{
-            colorFocused: '#262626ff',
-            fontSizeFocused: 12,
-          }}
-          labelStyles={{
-            backgroundColor: '#fff',
-            paddingHorizontal: 5,
-          }}
-          inputStyles={{
-            color: '#262626ff',
-            paddingHorizontal: 10,
-          }}
+        <View style={styles.inputContainer}>
+          <FloatingLabelInput
+            label="Senha"
+            staticLabel
+            containerStyles={{
+              borderWidth: 2,
+              paddingHorizontal: 10,
+              backgroundColor: '#fff',
+              borderColor: '#494949ff',
+              borderRadius: 8,
+              height: 53
+            }}
+            customLabelStyles={{
+              colorFocused: '#262626ff',
+              fontSizeFocused: 12,
+            }}
+            labelStyles={{
+              backgroundColor: '#fff',
+              paddingHorizontal: 5,
+            }}
+            inputStyles={{
+              color: '#262626ff',
+              paddingHorizontal: 10,
+            }}
             value={password}
             isPassword={!showPassword}
             togglePassword={showPassword}
             onChangeText={value => setPassword(value)}
             customShowPasswordComponent={<Text>Mostrar</Text>}
             customHidePasswordComponent={<Text>Ocultar</Text>}
+
         />
-      </View>
-      <TouchableOpacity
-        style={styles.loginButton}
-       onPress={handleLogin}
-      >
-        <Text style={styles.loginButtonText}>Login</Text>
-      </TouchableOpacity>
-    </View>
+        </View>
+
+        <TouchableOpacity
+          style={styles.loginButton}
+          onPress={handleLogin}
+        >
+          <Text style={styles.loginButtonText}>Login</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  scrollContainer: {
+    flexGrow: 1, 
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
   },
-
-  logo:{
+  logo: {
     width: 235,
     height: 50,
     marginBottom: 80
   },
-
   inputContainer: {
     width: '100%',
     marginBottom: 20,
   },
-
-  textLogin:{
-      color: '#000000ff',
+  textLogin: {
+    color: '#000000ff',
     fontSize: 35,
     fontWeight: '600',
     paddingBottom: 20,
-    textAlign: 'center', // Add this line to center the text
+    textAlign: 'center',
   },
-
-  containerlogo:{
+  containerlogo: {
     alignItems: 'center'
   },
-
   loginButton: {
-    width: '60%', // Reduced button width
+    width: '60%',
     backgroundColor: '#000000ff',
-    padding: 12, // Reduced padding
+    padding: 12,
     borderRadius: 5,
     alignItems: 'center',
-    marginTop: 10, // Adjusted margin
-
+    marginTop: 10,
   },
   loginButtonText: {
     color: '#fff',

@@ -46,8 +46,8 @@
       [
         "expo-media-library",
         {
-          "photosPermission": "Permitir que $(PRODUCT_NAME) salve fotos na sua galeria.",
-          "savePhotosPermission": "Permitir que $(PRODUCT_NAME) salve fotos na sua galeria.",
+        "photosPermission": "Permita o acesso para salvar as fotos do inventário na pasta Fotos Merolli.",
+          "savePhotosPermission": "Permita o acesso para salvar as fotos do inventário.",
           "isAccessMediaLocationEnabled": true
         }
       ],
