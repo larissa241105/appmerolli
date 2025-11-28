@@ -7,29 +7,28 @@ import {
   ActivityIndicator,
   Alert,
   StyleSheet,
-  // --- NOVOS IMPORTS ---
   Modal,
   FlatList,
-  SafeAreaView,
   Pressable,
 } from 'react-native';
-// ❌ REMOVIDO: import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
 import axios from 'axios';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Stack } from 'expo-router';
+import { MaterialIcons } from '@expo/vector-icons';
 
 const API_BASE_URL = 'https://orca-app-kokvo.ondigitalocean.app';
 
-// ========================================
-// COMPONENTE 1: O NOVO MODAL SELETOR (Reutilizável)
-// ========================================
+
 const SelectorModal = ({
   visible,
   onClose,
   options,
   onSelect,
   title,
-  labelKey, // A chave do objeto a ser mostrada (ex: "razao_social")
-  valueKey, // A chave do objeto a ser usada como valor (ex: "cnpj")
+  labelKey, 
+  valueKey,
 }) => {
   return (
     <Modal
@@ -58,7 +57,7 @@ const SelectorModal = ({
               <Pressable
                 style={styles.modalItem}
                 onPress={() => {
-                  onSelect(item[valueKey]); // Envia apenas o valor (ex: o CNPJ)
+                  onSelect(item[valueKey]); 
                   onClose();
                 }}
               >
@@ -72,9 +71,7 @@ const SelectorModal = ({
   );
 };
 
-// ========================================
-// COMPONENTE 2: O DISPLAY DO PICKER (Reutilizável)
-// ========================================
+
 const PickerDisplay = ({ label, value, onPress, disabled, placeholder }) => {
   const displayValue = value ? String(value) : placeholder;
   const textStyle = value ? styles.pickerDisplayText : styles.pickerPlaceholderText;
@@ -94,12 +91,10 @@ const PickerDisplay = ({ label, value, onPress, disabled, placeholder }) => {
   );
 };
 
-// ========================================
-// COMPONENTE 3: SEU COMPONENTE PRINCIPAL (Refatorado)
-// ========================================
+
 export default function EscolhaOSConsulta() {
-  console.log("--- COMPONENTE RENDERIZOU ---");
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const [loading, setLoading] = useState(true);
   const [listaPedidosUnidades, setListaPedidosUnidades] = useState([]);
@@ -112,15 +107,13 @@ export default function EscolhaOSConsulta() {
     os: "",
   });
 
-  // --- NOVO ESTADO PARA O MODAL ---
+
   const [modalState, setModalState] = useState({
     visible: false,
-    type: null, // 'cliente', 'pedido', 'unidade', 'os'
+    type: null, 
   });
 
-  // ========================================
-  // EFEITO PARA BUSCAR DADOS (Sem alterações)
-  // ========================================
+
   useEffect(() => {
     async function fetchData() {
       try {
@@ -330,6 +323,8 @@ export default function EscolhaOSConsulta() {
         return;
       }
 
+      const nomeClienteParaEnvio = clienteMap.get(cliente) || cliente;
+
       const apiUrl = `${API_BASE_URL}/api/inventario/consulta?osId=${encodeURIComponent(os)}`;
       console.log("📡 Chamando API:", apiUrl);
       
@@ -339,7 +334,11 @@ export default function EscolhaOSConsulta() {
 
       router.push({
         pathname: 'listadeProdutoInventario',
-        params: { osId: os }
+        params: { 
+            osId: os, 
+            nomeCliente: nomeClienteParaEnvio, // Enviando o NOME, não o CNPJ
+            pedidoNumero: pedido // Talvez você precise disso para a contagem também
+        }
       });
 
     } catch (error) {
@@ -372,7 +371,13 @@ export default function EscolhaOSConsulta() {
 
   return (
     <>
-      {/* O MODAL ÚNICO QUE SERÁ REUTILIZADO */}
+    <Stack.Screen options={{ headerShown: false }} />
+          <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                <MaterialIcons name="arrow-back" size={28} color="#ffffffff" />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>O.S Cadastro</Text>
+          </View>
       <SelectorModal
         visible={modalState.visible}
         onClose={() => setModalState({ visible: false, type: null })}
@@ -387,7 +392,6 @@ export default function EscolhaOSConsulta() {
         <View style={styles.formContainer}>
           <Text style={styles.title}>Consultar Inventário</Text>
 
-          {/* CLIENTES */}
           <PickerDisplay
             label="1. Cliente"
             value={clienteMap.get(selecoes.cliente)} // Mostra a Razão Social
@@ -449,6 +453,25 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: '#f5f5f5',
   },
+   header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingBottom: 15,
+        backgroundColor: '#000000ff', 
+        borderBottomWidth: 1,
+        borderBottomColor: '#eee',
+        zIndex: 10,
+    },
+    backBtn: {
+        padding: 5, 
+        marginRight: 10,
+    },
+    headerTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#ffffffff',
+    },
   formContainer: {
     backgroundColor: '#ffffff',
     borderRadius: 8,

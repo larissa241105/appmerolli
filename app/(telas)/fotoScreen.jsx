@@ -1,223 +1,273 @@
+import React, { useState, useRef } from 'react';
+import { 
+  View, 
+  Text, 
+  TouchableOpacity, 
+  StyleSheet, 
+  Alert, 
+  Image, 
+  ActivityIndicator,
+  StatusBar // Usamos StatusBar para controlar a barra de status, não SafeAreaView
+} from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { useState, useRef } from 'react';
-import { Button, StyleSheet, Text, View, Alert, TouchableOpacity, ImageBackground, ActivityIndicator } from 'react-native';
-import * as MediaLibrary from 'expo-media-library'; 
-import { router, useLocalSearchParams } from 'expo-router';
-import { MaterialIcons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { MaterialIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TelaCamera() {
-   const cameraRef = useRef(null);
+  const router = useRouter();
+  const cameraRef = useRef(null);
   
+  // Hook para pegar as medidas seguras (Notch, Ilha, Home Bar)
+  const insets = useSafeAreaInsets();
+  
+  const params = useLocalSearchParams();
+  const { tag, etiqueta } = params;
 
-   const params = useLocalSearchParams();
-   const { tag } = params; 
+  const [permission, requestPermission] = useCameraPermissions();
 
-   const [nomeDaPessoa] = useState('larissa'); 
+  const [photo, setPhoto] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [facing, setFacing] = useState("back");
 
-   const [permission, requestPermission] = useCameraPermissions();
-   const [galleryPermission, requestGalleryPermission] = MediaLibrary.usePermissions({ writeOnly: true });
+  if (!permission) return <View style={styles.container} />;
 
-   const [photo, setPhoto] = useState(null);
-   const [saving, setSaving] = useState(false);
-   const [facing, setFacing] = useState("back");
+  if (!permission.granted) {
+    return (
+      <View style={styles.permissionContainer}>
+        <Text style={styles.message}>
+          Precisamos de acesso à câmera para registrar o inventário.
+        </Text>
+        <TouchableOpacity style={styles.buttonPermission} onPress={requestPermission}>
+          <Text style={styles.textPermission}>Conceder Permissão</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
-   if (!permission) {
-     return <View style={styles.container} />;
-   }
+  const takePicture = async () => {
+    if (!cameraRef.current) return;
+    try {
+      const result = await cameraRef.current.takePictureAsync({ 
+        quality: 0.7,
+        skipProcessing: true 
+      });
+      setPhoto(result.uri);
+    } catch (err) {
+      console.log(err);
+      Alert.alert("Erro", "Não foi possível capturar a imagem.");
+    }
+  };
 
+  const handleConfirmPhoto = async () => {
+    if (!photo) return;
+    setSaving(true);
+    try {
+      const now = new Date();
+      const dia = String(now.getDate()).padStart(2, '0');
+      const mes = String(now.getMonth() + 1).padStart(2, '0');
+      const ano = now.getFullYear();
+      const hora = String(now.getHours()).padStart(2, '0');
+      const min = String(now.getMinutes()).padStart(2, '0');
+      const seg = String(now.getSeconds()).padStart(2, '0');
 
-   if (!permission.granted) {
-     return (
-        <View style={styles.permissionContainer}>
-          <Text style={styles.message}>
-             Precisamos de sua permissão para usar a câmera.
-          </Text>
-          <Button onPress={requestPermission} title="Conceder Permissão" />
-        </View>
-     );
-   }
+      const prefixoArquivo = etiqueta || 'SEMTAG';
+      const filename = `${prefixoArquivo}_${dia}-${mes}-${ano}_${hora}-${min}-${seg}.jpg`;
+      const destinationDir = `${FileSystem.documentDirectory}CameraAssets/`;
+      const newPath = destinationDir + filename;
 
-   const takePicture = async () => {
-     if (!cameraRef.current) return;
-     try {
-        const result = await cameraRef.current.takePictureAsync({ quality: 0.8 });
-        setPhoto(result.uri);
-     } catch (err) {
-        Alert.alert("Erro", "Não foi possível tirar a foto.");
-     }
-   };
+      const dirInfo = await FileSystem.getInfoAsync(destinationDir);
+      if (!dirInfo.exists) {
+        await FileSystem.makeDirectoryAsync(destinationDir, { intermediates: true });
+      }
 
- const handleConfirmPhoto = async () => {
+      await FileSystem.copyAsync({ from: photo, to: newPath });
 
-     if (!photo) {
-       Alert.alert("Erro", "Nenhuma foto para salvar.");
-       return;
-     }
+      if (tag) {
+        await AsyncStorage.setItem(tag, newPath);
+      } else {
+        await AsyncStorage.setItem('foto_sem_tag', newPath);
+      }
 
-     setSaving(true);
+      if (router.canGoBack()) {
+        router.back(); 
+      } else {
+        router.replace({ pathname: "home", params: { etiqueta: etiqueta } });
+      }
+    } catch (err) {
+      console.error("Erro ao salvar foto:", err);
+      Alert.alert("Erro", "Falha ao salvar a foto.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
-     try {
-       // --- 1. Geração do nome do arquivo (Seu código original, está perfeito) ---
-       const now = new Date();
-       const dia = String(now.getDate()).padStart(2, '0');
-       const mes = String(now.getMonth() + 1).padStart(2, '0');
-       const ano = now.getFullYear();
-       const hora = String(now.getHours()).padStart(2, '0');
-       const min = String(now.getMinutes()).padStart(2, '0');
-       const seg = String(now.getSeconds()).padStart(2, '0');
+  const handleRetake = () => setPhoto(null);
+  const toggleCamera = () => setFacing((prev) => (prev === "back" ? "front" : "back"));
+  
+  const handleCancel = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace("home");
+  };
 
-       // Usamos a 'tag' vinda dos params e 'SEMTAG' como fallback
-       const filename = `${tag || 'SEMTAG'}_${dia}-${mes}-${ano}_${hora}-${min}-${seg}.jpg`;
- 
-       // --- 2. Copiar/Mover o Arquivo (Seu código original, está perfeito) ---
-       const destinationDir = FileSystem.documentDirectory + 'CameraAssets/';
-       const newPath = destinationDir + filename;
+  return (
+    <View style={styles.container}>
+      {/* StatusBar transparente para a câmera ocupar tudo */}
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-       await FileSystem.makeDirectoryAsync(destinationDir, { intermediates: true });
+      {photo ? (
+        // --- PREVIEW ---
+        <View style={styles.previewContainer}> 
+          <Image source={{ uri: photo }} style={styles.previewImage} resizeMode="contain" />
+          
+          {saving && (
+            <View style={styles.loadingOverlay}>
+              <ActivityIndicator size="large" color="#fff" />
+              <Text style={{color: '#fff', marginTop: 10}}>Salvando...</Text>
+            </View>
+          )}
 
-       await FileSystem.copyAsync({
-         from: photo,
-         to: newPath,
-       });
+          {/* Padding Bottom dinâmico para respeitar a barra home do iPhone */}
+          <View style={[styles.previewButtons, { paddingBottom: insets.bottom + 20 }]}>
+            <TouchableOpacity onPress={handleRetake} style={styles.iconBtn} disabled={saving}>
+              <MaterialIcons name="cancel" size={42} color="#ff4444" />
+              <Text style={styles.iconText}>Tentar Novamente</Text>
+            </TouchableOpacity>
 
-       await AsyncStorage.setItem('pendingPhotoUri', newPath);
-       
-       // --- 4. (NOVO) Voltar para a tela de Cadastro ---
-       if (router.canGoBack()) {
-         router.back();
-       }
-
-     } catch (err) {
-       console.error("Erro ao preparar foto:", err);
-       Alert.alert("Erro", "Não foi possível preparar a foto. Tente novamente.");
-     } finally {
-       setSaving(false);
-     }
-   };
-
-   // Helper function para renomear e salvar (requer expo-file-system)
-   const saveWithCustomName = async (uri, customFilename) => {
-     // **⚠️ ATENÇÃO:** Para que esta função funcione, você deve importar:
-     // import * as FileSystem from 'expo-file-system'; 
-
-     const destinationDir = FileSystem.documentDirectory + 'CameraAssets/';
-
-     await FileSystem.makeDirectoryAsync(destinationDir, { intermediates: true });
-
-     const newPath = destinationDir + customFilename;
-
-     await FileSystem.copyAsync({
-        from: uri,
-        to: newPath,
-     });
-
-     return newPath;
-   };
-
-
-   const toggleCamera = () => {
-     setFacing((prev) => (prev === "back" ? "front" : "back"));
-   };
-
-   // 3. Renderização principal (Câmera ou Preview da Foto)
-   return (
-     <View style={styles.container}>
-        {photo ? (
-          // Mostra o preview da foto tirada
-          <ImageBackground source={{ uri: photo }} style={styles.preview}>
-             {saving && (
-               <View style={styles.overlay}>
-                  <ActivityIndicator size="large" color="#fff" />
-               </View>
-             )}
-             <View style={styles.previewButtons}>
-               <TouchableOpacity onPress={() => setPhoto(null)} style={styles.iconBtn}>
-                  <MaterialIcons name="cancel" size={42} color="#fff" />
-                  <Text style={styles.iconText}>Tentar Novamente</Text>
-               </TouchableOpacity>
-            <TouchableOpacity onPress={handleConfirmPhoto} style={styles.iconBtn}>
-       <MaterialIcons name="check-circle" size={42} color="#fff" />
-       <Text style={styles.iconText}>Salvar</Text> 
-   </TouchableOpacity>
-             </View>
-          </ImageBackground>
-        ) : (
-          // Mostra a câmera ao vivo
-          <View style={{ flex: 1 }}>
-             <CameraView
-               style={StyleSheet.absoluteFill} // Câmera ocupa todo o espaço
-               facing={facing}
-               ref={cameraRef}
-               playSoundOnCapture={false}
-             />
-             {/* BOTÕES FICAM AQUI, SOBRE A CÂMERA */}
-             <View style={styles.overlayContainer}>
-               <TouchableOpacity style={styles.switchCam} onPress={toggleCamera}>
-                  <MaterialIcons name="flip-camera-ios" size={32} color="#fff" />
-               </TouchableOpacity>
-               <TouchableOpacity style={styles.captureButton} onPress={takePicture} />
-             </View>
+            <TouchableOpacity onPress={handleConfirmPhoto} style={styles.iconBtn} disabled={saving}>
+              <MaterialIcons name="check-circle" size={42} color="#4caf50" />
+              <Text style={styles.iconText}>Confirmar</Text> 
+            </TouchableOpacity>
           </View>
-        )}
-     </View>
-   );
+        </View>
+      ) : (
+        // --- CÂMERA ---
+        <View style={{ flex: 1 }}>
+          <CameraView
+            style={StyleSheet.absoluteFill}
+            facing={facing}
+            ref={cameraRef}
+            playSoundOnCapture={false}
+          />
+          
+          {/* Botão Fechar respeitando o Top Notch */}
+          <View style={[styles.topButtonContainer, { top: insets.top + 10 }]}>
+            <TouchableOpacity onPress={handleCancel} style={styles.closeBtn}>
+               <MaterialIcons name="close" size={30} color="#fff" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Controles respeitando o Bottom Bar */}
+          <View style={[styles.overlayContainer, { paddingBottom: insets.bottom + 20 }]}>
+            <TouchableOpacity style={styles.switchCam} onPress={toggleCamera}>
+              <MaterialIcons name="flip-camera-ios" size={32} color="#fff" />
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.captureButton} onPress={takePicture} />
+            
+            <View style={{width: 32}} /> 
+          </View>
+        </View>
+      )}
+    </View>
+  );
 }
 
-// Estilos Atualizados
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#000" },
+  container: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
   permissionContainer: {
     flex: 1,
-    backgroundColor: "#000",
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000',
     padding: 20,
   },
-  message: { color: "#fff", fontSize: 18, marginBottom: 20, textAlign: "center" },
-  camera: { // Este estilo não é mais necessário
-    // flex: 1,
-    // justifyContent: "flex-end",
-    // alignItems: "center",
+  message: {
+    color: '#fff',
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
   },
-  // NOVO ESTILO para o container dos botões sobre a câmera
-  overlayContainer: {
+  buttonPermission: {
+    backgroundColor: '#2196F3',
+    padding: 12,
+    borderRadius: 8,
+  },
+  textPermission: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  previewContainer: {
     flex: 1,
-    backgroundColor: "transparent",
-    justifyContent: "flex-end",
-    alignItems: "center",
+    backgroundColor: '#000',
+    justifyContent: 'center',
   },
-  switchCam: {
-    position: "absolute",
-    top: 60, // Aumentei um pouco para não ficar colado na borda
-    right: 20,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    padding: 10,
-    borderRadius: 50,
+  previewImage: {
+    flex: 1,
+    width: '100%',
+  },
+  previewButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    position: 'absolute',
+    bottom: 0,
+    width: '100%',
+    paddingTop: 20,
+  },
+  iconBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconText: {
+    color: '#fff',
+    marginTop: 5,
+    fontSize: 12,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  overlayContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingHorizontal: 30,
+    paddingTop: 20,
   },
   captureButton: {
-    width: 75,
-    height: 75,
-    borderRadius: 50,
-    backgroundColor: "#fff",
-    marginBottom: 35,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: '#fff',
     borderWidth: 4,
-    borderColor: "#aaa",
+    borderColor: 'rgba(255,255,255,0.5)',
   },
-  preview: { flex: 1, justifyContent: "flex-end" },
-  previewButtons: {
-    flexDirection: "row",
-    justifyContent: "space-evenly",
-    paddingVertical: 20,
-    backgroundColor: "rgba(0,0,0,0.4)",
+  switchCam: {
+    padding: 10,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    borderRadius: 50,
   },
-  iconBtn: { alignItems: "center" },
-  iconText: { color: "#fff", marginTop: 5 },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.7)",
-    justifyContent: "center",
-    alignItems: "center",
+  topButtonContainer: {
+    position: 'absolute',
+    left: 20,
+    zIndex: 5,
   },
+  closeBtn: {
+    padding: 8,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    borderRadius: 50,
+  }
 });

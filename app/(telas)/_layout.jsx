@@ -2,7 +2,15 @@ import { Stack } from 'expo-router';
 
 export default function TelasLayout() {
   return (
-    <Stack >
+    <Stack
+    screenOptions={{
+    headerStyle: { backgroundColor: '#000' },
+    headerTitleStyle: { fontWeight: 'bold', color: '#fff' },
+    headerTintColor: '#fff',
+    headerBackVisible: false,
+    headerBackTitle: '', 
+  }}
+    >
 
       <Stack.Screen 
         name="home" 
@@ -22,6 +30,7 @@ export default function TelasLayout() {
      <Stack.Screen 
         name="biparqrcodeScreen" 
         options={{ 
+          title: 'Bipar Qr Code', 
            headerShown: false
         }} 
       />
@@ -29,6 +38,7 @@ export default function TelasLayout() {
         <Stack.Screen 
         name="fotoScreen" 
         options={{ 
+          title: '', 
            headerShown: false
         }} 
       />
@@ -36,6 +46,7 @@ export default function TelasLayout() {
       <Stack.Screen 
         name="splashScreen" 
        options={{
+        title: '', 
         gestureEnabled: false,
         headerLeft: () => null,
        }}
@@ -44,6 +55,7 @@ export default function TelasLayout() {
       <Stack.Screen 
         name="escolhaOSCadastro" 
        options={{
+        title: 'O.S Cadastro', 
         gestureEnabled: false,
         headerLeft: () => null,
        }}
@@ -52,6 +64,7 @@ export default function TelasLayout() {
        <Stack.Screen 
         name="escolhaOsConsulta" 
        options={{
+        title: 'O.S Consulta', 
         gestureEnabled: false,
         headerLeft: () => null,
        }}
@@ -59,15 +72,13 @@ export default function TelasLayout() {
       />
       <Stack.Screen 
         name="listadeProdutoInventario" 
-       options={{
-        gestureEnabled: false,
-        headerLeft: () => null,
-       }}
+      
       
       />
       <Stack.Screen 
         name="editarProdutoInventario" 
        options={{
+        title: 'Editar', 
         gestureEnabled: false,
         headerLeft: () => null,
        }}
@@ -76,8 +87,11 @@ export default function TelasLayout() {
 
       <Stack.Screen 
         name="qrcodeScreen" 
-      
-      
+        options={{
+        title: 'Bipar QR Code', 
+        gestureEnabled: false,
+        headerLeft: () => null,
+       }}
       />
       
     </Stack>
