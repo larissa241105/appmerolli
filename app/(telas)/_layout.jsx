@@ -34,6 +34,13 @@ export default function TelasLayout() {
            headerShown: false
         }} 
       />
+      <Stack.Screen 
+        name="biparqrcodeScreenAntigo" 
+        options={{ 
+          title: 'Bipar Qr Code Antigo', 
+           headerShown: false
+        }} 
+      />
 
         <Stack.Screen 
         name="fotoScreen" 
@@ -89,6 +96,15 @@ export default function TelasLayout() {
         name="qrcodeScreen" 
         options={{
         title: 'Bipar QR Code', 
+        gestureEnabled: false,
+        headerLeft: () => null,
+       }}
+      />
+
+      <Stack.Screen 
+        name="qrcodeScreenAntigo" 
+        options={{
+        title: 'Bipar QR Code Antigo', 
         gestureEnabled: false,
         headerLeft: () => null,
        }}

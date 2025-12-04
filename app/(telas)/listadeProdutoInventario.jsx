@@ -7,7 +7,6 @@ import { useRouter } from 'expo-router';
 import { TouchableOpacity } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
-import { router } from 'expo-router';
 import * as XLSX from 'xlsx';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
@@ -174,11 +173,14 @@ const { osId, nomeCliente, pedidoNumero } = useLocalSearchParams();
     <>
     <Stack.Screen options={{ headerShown: false }} />
 
-            <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                    <MaterialIcons name="arrow-back" size={28} color="#ffffffff" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Itens do inventário</Text>
+        <MaterialIcons name="arrow-back" size={28} color="#ffffffff" />
+    </TouchableOpacity>
+    <Text style={styles.headerTitle}>Itens do inventário</Text> 
+    <TouchableOpacity onPress={abrirMenuOpcoes} style={styles.menuBtn}>
+        <MaterialIcons name="more-vert" size={28} color="#ffffffff" />
+    </TouchableOpacity>
             </View>
     <View style={styles.container}>
        
@@ -215,6 +217,11 @@ const styles = StyleSheet.create({
         borderBottomColor: '#eee',
         zIndex: 10,
     },
+    menuBtn: {
+    padding: 5,
+    marginLeft: 60,
+   
+  },
     backBtn: {
         padding: 5, 
         marginRight: 10,

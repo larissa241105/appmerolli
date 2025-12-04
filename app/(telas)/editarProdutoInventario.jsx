@@ -214,6 +214,57 @@ export default function EditarProdutoInventario() {
   };
 
 
+  const handleExcluir = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/inventario/${item.id}`, {
+        method: 'DELETE',
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        Alert.alert('Sucesso', 'Item excluído com sucesso!', [
+          { text: 'OK', onPress: () => router.back() } // Volta para a tela anterior
+        ]);
+      } else {
+        Alert.alert('Erro', result.message || 'Não foi possível excluir o item.');
+      }
+    } catch (error) {
+      console.error('Erro ao excluir:', error);
+      Alert.alert('Erro', 'Ocorreu um erro de conexão.');
+    }
+  };
+
+  // --- MENU DE OPÇÕES (3 PONTINHOS) ---
+  const abrirMenuOpcoes = () => {
+    Alert.alert(
+      "Opções do Item",
+      "O que deseja fazer com este item?",
+      [
+        {
+          text: "Cancelar",
+          style: "cancel"
+        },
+        {
+          text: "Excluir Item",
+          style: "destructive", // No iOS fica vermelho
+          onPress: () => {
+            // Confirmação extra de segurança
+            Alert.alert(
+              "Tem certeza?",
+              "Esta ação não poderá ser desfeita.",
+              [
+                { text: "Não", style: "cancel" },
+                { text: "Sim, Excluir", style: "destructive", onPress: handleExcluir }
+              ]
+            );
+          }
+        }
+      ]
+    );
+  };
+
+
   return (
     <>
         <Stack.Screen options={{ headerShown: false }} />
@@ -223,6 +274,11 @@ export default function EditarProdutoInventario() {
                     <MaterialIcons name="arrow-back" size={28} color="#ffffffff" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Editar Item</Text>
+
+          <TouchableOpacity onPress={abrirMenuOpcoes} style={styles.menuBtn}>
+              <MaterialIcons name="more-vert" size={28} color="#ffffffff" />
+          </TouchableOpacity>
+
             </View>
 
       <KeyboardAvoidingView
@@ -432,10 +488,16 @@ const styles = StyleSheet.create({
         padding: 5, 
         marginRight: 10,
     },
+    menuBtn: {
+    padding: 5,
+    marginLeft: 0, // Removido o marginLeft fixo
+  },
     headerTitle: {
         fontSize: 20,
         fontWeight: 'bold',
+        flex: 1,
         color: '#ffffffff',
+        textAlign: 'center',
     },
   inputText: { color: '#000', fontSize: 16 },
   inputPlaceholder: { color: '#757575ff', fontSize: 16 },
