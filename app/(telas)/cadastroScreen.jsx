@@ -81,6 +81,7 @@ export default function CadastroScreen() {
     const [codigoFinal, setCodigoFinal] = useState(null);
 
    const [nossaTag, setNossaTag] = useState('');
+   const [tagAntiga, settagAntiga] = useState('');
    const [nomeCliente, setNomeCliente] = useState('');
    const [setor, setSetor] = useState('');
    const [familia, setFamilia] = useState('');
@@ -401,6 +402,7 @@ useEffect(() => {
     const osIdFinal = osId;
     const pedidoNumeroFinal = pedidoNumero;
     const tagParaSalvar = codigoFinal || params.tag || params.etiqueta;
+    const tagAntiga = params.tagAntiga
 
     if (!osIdFinal || !pedidoNumeroFinal) {
       Alert.alert('Erro', 'Dados de navegação perdidos.');
@@ -423,7 +425,8 @@ useEffect(() => {
       osId: osIdFinal,
       pedidoNumero: pedidoNumeroFinal,
       tagCliente: tagParaSalvar,
-      nossaTag: nossaTag ? nossaTag : null,
+      tagAntiga: tagAntiga,
+      nossaTag,
       nomeCliente,
       setor,
       nomeColaborador,

@@ -39,10 +39,8 @@ export default function HomeScreen() {
 ];
 
      useEffect(() => {
-  // Tenta pegar do Scanner (tag) OU da volta da Câmera (etiqueta)
   const codigoRecebido = params.tag || params.etiqueta;
 
-  // Só salva se existir E não for um comando de foto
   if (codigoRecebido && !COMANDOS_INTERNOS.includes(codigoRecebido)) {
     console.log("Etiqueta VÁLIDA salva na memória:", codigoRecebido);
     setEtiquetaSalva(codigoRecebido);
@@ -51,7 +49,6 @@ export default function HomeScreen() {
 
   useEffect(() => {
     const fetchNomeCliente = async () => {
-      // Se já veio o nome pronto via parametro, usa ele e não gasta API
       if (params.nomeCliente && params.nomeCliente !== 'null') {
           setNomeCliente(params.nomeCliente);
           return;
@@ -105,9 +102,16 @@ export default function HomeScreen() {
         });
         return;
      } 
-     else if (title === 'Bipar Qrcode do cliente' || title === 'Bipar Qrcode antigo do cliente') {
+     else if (title === 'Bipar Qrcode do cliente') {
         router.push({
           pathname: 'qrcodeScreen',
+          params: params 
+        });
+        return;
+     }
+     else if (title === 'Bipar Qrcode antigo do cliente') {
+        router.push({
+          pathname: 'qrcodeScreenAntigo',
           params: params 
         });
         return;
