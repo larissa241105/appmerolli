@@ -11,7 +11,6 @@ const QrcodeScreenAntigo = () => {
     const [plaquetaAntigaValue, setplaquetaAntigaValue] = useState('');
     const params = useLocalSearchParams();
 
-    const CADASTRO_ROUTE = 'home'; 
 
     const handleScanQrcode = () => {
         router.push({
@@ -29,7 +28,7 @@ const QrcodeScreenAntigo = () => {
         console.log(`Consultando plaqueta: ${plaquetaAntigaValue}`);
 
         router.navigate({
-            pathname: CADASTRO_ROUTE,
+            pathname: "home",
             params: {
                 ...params, 
                 tagAntiga: plaquetaAntigaValue.trim(), 

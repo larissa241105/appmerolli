@@ -11,7 +11,6 @@ const QrcodeScreen = () => {
     const [plaquetaAtualValue, setplaquetaAtualValue] = useState('');
     const params = useLocalSearchParams();
 
-    const CADASTRO_ROUTE = 'home'; 
 
     const handleScanQrcode = () => {
         router.push({
@@ -29,10 +28,11 @@ const QrcodeScreen = () => {
         console.log(`Consultando plaqueta: ${plaquetaAtualValue}`);
 
         router.navigate({
-            pathname: CADASTRO_ROUTE,
+            pathname: "home",
             params: {
                 ...params, 
-                tag: plaquetaAtualValue.trim(), 
+                tag: plaquetaAtualValue.trim(),
+                
             }
         }); 
     };

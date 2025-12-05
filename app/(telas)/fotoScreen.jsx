@@ -47,19 +47,37 @@ export default function TelaCamera() {
     );
   }
 
-  const takePicture = async () => {
+const takePicture = async () => {
     if (!cameraRef.current) return;
     try {
-      const result = await cameraRef.current.takePictureAsync({ 
-        quality: 0.7,
-        skipProcessing: true 
+      // 1. Tira a foto "bruta" (pode usar quality 1 aqui pois vamos comprimir depois)
+      const photoResult = await cameraRef.current.takePictureAsync({ 
+        quality: 1,
+        skipProcessing: true // Mantém true para o clique ser rápido
       });
-      setPhoto(result.uri);
+
+      // 2. Manipula a imagem para reduzir tamanho
+      const manipResult = await ImageManipulator.manipulateAsync(
+        photoResult.uri,
+        [
+          // Redimensiona para uma largura de 1080px (altura ajusta proporcionalmente)
+          // Isso reduz MUITO o tamanho sem perder qualidade visível no celular
+          { resize: { width: 1080 } } 
+        ],
+        { 
+          compress: 0.5, 
+          format: ImageManipulator.SaveFormat.JPEG 
+        }
+      );
+
+      // 3. Salva o URI da imagem JÁ otimizada
+      setPhoto(manipResult.uri);
+
     } catch (err) {
       console.log(err);
       Alert.alert("Erro", "Não foi possível capturar a imagem.");
     }
-  };
+};
 
   const handleConfirmPhoto = async () => {
     if (!photo) return;

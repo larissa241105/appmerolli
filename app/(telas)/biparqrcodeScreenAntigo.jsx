@@ -9,7 +9,6 @@ export default function BiparQrCodeAntigoScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false); 
 
-    const CADASTRO_ROUTE = 'home'; 
     const { osId, pedidoNumero } = useLocalSearchParams();
     console.log("Tela QRCODE recebeu os parâmetros:", { osId, pedidoNumero });
 
@@ -33,8 +32,9 @@ const handleBarCodeScanned = ({ type, data }) => {
 
         console.log("Tela QRCODE vai enviar para Cadastro:", paramsParaNavegar);
                   router.navigate({
-                    pathname: CADASTRO_ROUTE,
-                    params: paramsParaNavegar
+                     pathname: "home",
+                    params: paramsParaNavegar,
+                    tag: data,
                   });
                }
              },
