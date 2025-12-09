@@ -15,7 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
+import * as ImageManipulator from 'expo-image-manipulator';
 export default function TelaCamera() {
   const router = useRouter();
   const cameraRef = useRef(null);
