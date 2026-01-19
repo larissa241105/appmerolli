@@ -9,261 +9,157 @@ import {
   Alert, 
   KeyboardAvoidingView, 
   Platform, 
-  Modal, 
-  FlatList,
-  Image 
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Picker } from '@react-native-picker/picker';
 import axios from 'axios';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import SearchableModal from '../src/components/SearchableModal';
 
 const API_BASE_URL = 'https://orca-app-kokvo.ondigitalocean.app';
 
-// --- COMPONENTE MODAL DE PESQUISA (Reutilizado do Cadastro) ---
-const SearchableModal = ({ visible, onClose, options, onSelect, title, search, setSearch }) => {
-  return (
-    <Modal visible={visible} animationType="slide" transparent={true}>
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{title}</Text>
-            <TouchableOpacity onPress={onClose}>
-              <MaterialIcons name="close" size={24} color="#000" />
-            </TouchableOpacity>
-          </View>
-          
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Pesquisar..."
-            value={search}
-            onChangeText={setSearch}
-          />
-          
-          <FlatList
-            data={options}
-            keyExtractor={(item, index) => index.toString()}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.optionItem}
-                onPress={() => onSelect(item)}
-              >
-                <Text style={styles.optionText}>{item}</Text>
-              </TouchableOpacity>
-            )}
-          />
-        </View>
-      </View>
-    </Modal>
-  );
+// Hook personalizado para gerenciar as listas de opções
+const useInventoryOptions = () => {
+  const [options, setOptions] = useState({
+    setores: [],
+    familias: [],
+    tipos: [],
+    marcas: []
+  });
+
+  useEffect(() => {
+    const fetchOptions = async () => {
+      try {
+        const [setorRes, familiaRes, tipoRes, marcaRes] = await Promise.all([
+          axios.get(`${API_BASE_URL}/visualizarsetor`),
+          axios.get(`${API_BASE_URL}/visualizarfamilia`),
+          axios.get(`${API_BASE_URL}/visualizartipoproduto`),
+          axios.get(`${API_BASE_URL}/visualizarmarca`)
+        ]);
+
+        setOptions({
+          setores: setorRes.data.map(i => i.setor),
+          familias: familiaRes.data.map(i => i.familia),
+          tipos: tipoRes.data.map(i => i.tipo),
+          marcas: marcaRes.data.map(i => i.marca),
+        });
+      } catch (error) {
+        console.error('Erro ao buscar opções:', error);
+        // Opcional: Alert silencioso ou tratamento específico
+      }
+    };
+    fetchOptions();
+  }, []);
+
+  return options;
 };
+
 
 export default function EditarProdutoInventario() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
   
-  // Recupera o item passado via parâmetro
-  const item = params.item ? JSON.parse(params.item) : {};
+  // 1. Recuperação Segura dos Dados Iniciais
+  const initialData = useMemo(() => {
+    return params.item ? JSON.parse(params.item) : {};
+  }, [params.item]);
 
-  // --- ESTADOS DO FORMULÁRIO ---
-  const [tagCliente, setTagCliente] = useState(item.tag_cliente || item.tagCliente || '');
-  const [nossaTag, setNossaTag] = useState(item.nossa_tag || item.nossaTag || '');
-  const [nomeCliente, setNomeCliente] = useState(item.nome_cliente || item.nomeCliente || '');
-  const [setor, setSetor] = useState(item.setor || '');
-  const [nomeColaborador, setNomeColaborador] = useState(item.nome_colaborador || item.nomeColaborador || '');
-  const [familia, setFamilia] = useState(item.familia || '');
-  const [tipo, setTipo] = useState(item.tipo || '');
-  const [descricao, setDescricao] = useState(item.descricao || '');
-  const [marca, setMarca] = useState(item.marca || '');
-  const [modelo, setModelo] = useState(item.modelo || '');
-  const [numeroSerie, setNumeroSerie] = useState(item.numero_serie || item.numeroSerie || '');
-  const [imei1, setImei1] = useState(item.imei1 || '');
-  const [imei2, setImei2] = useState(item.imei2 || '');
-  const [statusProduto, setStatusProduto] = useState(item.status_produto || item.statusProduto || '');
+  
+  const [form, setForm] = useState({
+    tagCliente: initialData.tag_cliente || initialData.tagCliente || '',
+    tagAntiga: initialData.tag_antiga || initialData.tag_antiga || '',
+    nomeCliente: initialData.nome_cliente || initialData.nomeCliente || '',
+    setor: initialData.setor || '',
+    nomeColaborador: initialData.nome_colaborador || initialData.nomeColaborador || '',
+    familia: initialData.familia || '',
+    tipo: initialData.tipo || '',
+    descricao: initialData.descricao || '',
+    marca: initialData.marca || '',
+    modelo: initialData.modelo || '',
+    numeroSerie: initialData.numero_serie || initialData.numeroSerie || '',
+    imei1: initialData.imei1 || '',
+    imei2: initialData.imei2 || '',
+    statusProduto: initialData.status_produto || initialData.statusProduto || ''
+  });
 
-  // --- ESTADOS PARA OS MODAIS E OPÇÕES ---
-  const [isSetorModalVisible, setIsSetorModalVisible] = useState(false);
-  const [setorOptions, setSetorOptions] = useState([]);
-  const [filteredSetorOptions, setFilteredSetorOptions] = useState([]);
-  const [setorSearch, setSetorSearch] = useState('');
+  // 3. Estado Unificado para os Modais de Busca
+  const [modalVisible, setModalVisible] = useState(null); // 'setor', 'familia', 'tipo', 'marca' ou null
+  const [searchText, setSearchText] = useState('');
 
-  const [isFamiliaModalVisible, setIsFamiliaModalVisible] = useState(false);
-  const [familiaOptions, setFamiliaOptions] = useState([]);
-  const [filteredFamiliaOptions, setFilteredFamiliaOptions] = useState([]);
-  const [familiaSearch, setFamiliaSearch] = useState('');
+  // 4. Hook customizado (traz as listas da API)
+  const options = useInventoryOptions();
 
-  const [isTipoModalVisible, setIsTipoModalVisible] = useState(false);
-  const [tipoOptions, setTipoOptions] = useState([]);
-  const [filteredTipoOptions, setFilteredTipoOptions] = useState([]);
-  const [tipoSearch, setTipoSearch] = useState('');
+  // --- HANDLERS GENÉRICOS ---
 
-  const [isMarcaModalVisible, setIsMarcaModalVisible] = useState(false);
-  const [marcaOptions, setMarcaOptions] = useState([]);
-  const [filteredMarcaOptions, setFilteredMarcaOptions] = useState([]);
-  const [marcaSearch, setMarcaSearch] = useState('');
-
-  // --- BUSCAR DADOS DAS APIS (Igual ao Cadastro) ---
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Buscar Setores
-        const setorRes = await axios.get(`${API_BASE_URL}/visualizarsetor`);
-        const setores = setorRes.data.map(i => i.setor);
-        setSetorOptions(setores);
-        setFilteredSetorOptions(setores);
-
-        // Buscar Familias
-        const familiaRes = await axios.get(`${API_BASE_URL}/visualizarfamilia`);
-        const familias = familiaRes.data.map(i => i.familia);
-        setFamiliaOptions(familias);
-        setFilteredFamiliaOptions(familias);
-
-        // Buscar Tipos
-        const tipoRes = await axios.get(`${API_BASE_URL}/visualizartipoproduto`);
-        const tipos = tipoRes.data.map(i => i.tipo);
-        setTipoOptions(tipos);
-        setFilteredTipoOptions(tipos);
-
-        // Buscar Marcas
-        const marcaRes = await axios.get(`${API_BASE_URL}/visualizarmarca`);
-        const marcas = marcaRes.data.map(i => i.marca);
-        setMarcaOptions(marcas);
-        setFilteredMarcaOptions(marcas);
-
-      } catch (error) {
-        console.error('Erro ao buscar dados:', error);
-        // Não vamos travar o editor se a API falhar, apenas os selects ficarão vazios
-      }
-    };
-    fetchData();
-  }, []);
-
-  // --- EFEITOS DE FILTRO (Igual ao Cadastro) ---
-  useEffect(() => {
-    setFilteredSetorOptions(
-      setorSearch === '' ? setorOptions : setorOptions.filter(o => o.toLowerCase().includes(setorSearch.toLowerCase()))
-    );
-  }, [setorSearch, setorOptions]);
-
-  useEffect(() => {
-    setFilteredFamiliaOptions(
-      familiaSearch === '' ? familiaOptions : familiaOptions.filter(o => o.toLowerCase().includes(familiaSearch.toLowerCase()))
-    );
-  }, [familiaSearch, familiaOptions]);
-
-  useEffect(() => {
-    setFilteredTipoOptions(
-      tipoSearch === '' ? tipoOptions : tipoOptions.filter(o => o.toLowerCase().includes(tipoSearch.toLowerCase()))
-    );
-  }, [tipoSearch, tipoOptions]);
-
-  useEffect(() => {
-    setFilteredMarcaOptions(
-      marcaSearch === '' ? marcaOptions : marcaOptions.filter(o => o.toLowerCase().includes(marcaSearch.toLowerCase()))
-    );
-  }, [marcaSearch, marcaOptions]);
-
-  // --- FUNÇÕES DE SELEÇÃO ---
-  const onSelectSetor = (val) => { setSetor(val); setIsSetorModalVisible(false); setSetorSearch(''); };
-  const onSelectFamilia = (val) => { setFamilia(val); setIsFamiliaModalVisible(false); setFamiliaSearch(''); };
-  const onSelectTipo = (val) => { setTipo(val); setIsTipoModalVisible(false); setTipoSearch(''); };
-  const onSelectMarca = (val) => { setMarca(val); setIsMarcaModalVisible(false); setMarcaSearch(''); };
-
-  // --- FUNÇÃO DE SALVAR EDIÇÃO ---
-  const handleEditar = async () => {
-    const dadosAtualizados = {
-      tagCliente,
-      nossaTag,
-      nomeCliente,
-      setor,
-      nomeColaborador,
-      familia,
-      tipo,
-      descricao,
-      marca,
-      modelo,
-      numeroSerie,
-      imei1,
-      imei2,
-      statusProduto,
-    };
-
-    try {
-      // Usa o ID do item original para fazer o PUT
-      const response = await fetch(`${API_BASE_URL}/api/inventario/${item.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(dadosAtualizados),
-      });
-      
-      const result = await response.json();
-
-      if (response.ok) {
-        Alert.alert('Sucesso', 'Produto editado com sucesso!', [
-            { text: 'OK', onPress: () => router.back() } 
-        ]);
-      } else {
-        Alert.alert('Erro', result.message || 'Não foi possível editar o produto.');
-      }
-    } catch (error) {
-      console.error('Erro na requisição:', error);
-      Alert.alert('Erro', 'Ocorreu um erro de conexão.');
-    }
+  // Atualiza qualquer campo do formulário
+  const updateForm = (key, value) => {
+    setForm(prev => ({ ...prev, [key]: value }));
   };
 
+  // Lógica de Filtro Dinâmico (substitui os 4 useEffects de filtro)
+  const getFilteredOptions = (key) => {
+    const list = options[key] || []; // ex: options.setores
+    if (!searchText) return list;
+    return list.filter(item => item.toLowerCase().includes(searchText.toLowerCase()));
+  };
+
+  // Seleção de item no Modal
+  const handleSelectOption = (field, value) => {
+    updateForm(field, value);
+    setModalVisible(null);
+    setSearchText('');
+  };
+
+  // --- CRUD (SALVAR E EXCLUIR) ---
+
+  const handleEditar = async () => {
+    try {
+      // Padronizando para axios (como no resto do app)
+      await axios.put(`${API_BASE_URL}/api/inventario/${initialData.id}`, form);
+      
+      Alert.alert('Sucesso', 'Produto editado com sucesso!', [
+        { text: 'OK', onPress: () => router.back() }
+      ]);
+    } catch (error) {
+      console.error('Erro na requisição:', error);
+      const msg = error.response?.data?.message || 'Erro de conexão.';
+      Alert.alert('Erro', msg);
+    }
+  };
 
   const handleExcluir = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/inventario/${item.id}`, {
-        method: 'DELETE',
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        Alert.alert('Sucesso', 'Item excluído com sucesso!', [
-          { text: 'OK', onPress: () => router.back() } // Volta para a tela anterior
-        ]);
-      } else {
-        Alert.alert('Erro', result.message || 'Não foi possível excluir o item.');
-      }
+      await axios.delete(`${API_BASE_URL}/api/inventario/${initialData.id}`);
+      
+      Alert.alert('Sucesso', 'Item excluído com sucesso!', [
+        { text: 'OK', onPress: () => router.back() }
+      ]);
     } catch (error) {
       console.error('Erro ao excluir:', error);
-      Alert.alert('Erro', 'Ocorreu um erro de conexão.');
+      Alert.alert('Erro', 'Não foi possível excluir o item.');
     }
   };
 
-  // --- MENU DE OPÇÕES (3 PONTINHOS) ---
-  const abrirMenuOpcoes = () => {
+  const confirmDelete = () => {
     Alert.alert(
-      "Opções do Item",
-      "O que deseja fazer com este item?",
+      "Tem certeza?",
+      "Esta ação não poderá ser desfeita.",
       [
-        {
-          text: "Cancelar",
-          style: "cancel"
-        },
-        {
-          text: "Excluir Item",
-          style: "destructive", // No iOS fica vermelho
-          onPress: () => {
-            // Confirmação extra de segurança
-            Alert.alert(
-              "Tem certeza?",
-              "Esta ação não poderá ser desfeita.",
-              [
-                { text: "Não", style: "cancel" },
-                { text: "Sim, Excluir", style: "destructive", onPress: handleExcluir }
-              ]
-            );
-          }
-        }
+        { text: "Não", style: "cancel" },
+        { text: "Sim, Excluir", style: "destructive", onPress: handleExcluir }
       ]
     );
   };
 
+  const abrirMenuOpcoes = () => {
+    Alert.alert("Opções do Item", "O que deseja fazer?", [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Excluir Item", style: "destructive", onPress: confirmDelete }
+      ]
+    );
+  };
 
   return (
     <>
@@ -278,7 +174,6 @@ export default function EditarProdutoInventario() {
           <TouchableOpacity onPress={abrirMenuOpcoes} style={styles.menuBtn}>
               <MaterialIcons name="more-vert" size={28} color="#ffffffff" />
           </TouchableOpacity>
-
             </View>
 
       <KeyboardAvoidingView
@@ -292,119 +187,111 @@ export default function EditarProdutoInventario() {
         >
           <View style={styles.formContainer}>
 
-  
-            
-            <Text style={[styles.label, { color: '#000' }]}>T a g    d o    c l i e n t e</Text>
-            <TextInput
-              style={[styles.input, styles.readOnlyInput]}
-              value={tagCliente}
-              editable={false} 
-            />
+  <Text style={[styles.label, { color: '#000' }]}>T a g    d o    c l i e n t e</Text>
+  <TextInput
+    style={[styles.input, styles.readOnlyInput]}
+    value={form.tagCliente}
+    editable={false} 
+  />
 
-            <Text style={[styles.label, { color: '#9c2a2aff' }]}>N o s s a    t a g *</Text>
-            <TextInput
-              style={styles.input}
-              value={nossaTag}
-              onChangeText={setNossaTag}
-            />
+  <Text style={[styles.label, { color: '#4c6d09ff' }]}>N o m e    d o    c l i e n t e *</Text>
+  <TextInput
+    style={[styles.input, styles.readOnlyInput]} 
+    value={form.nomeCliente}
+    editable={false} 
+  />
 
-            <Text style={[styles.label, { color: '#4c6d09ff' }]}>N o m e    d o    c l i e n t e *</Text>
-            <TextInput
-              style={[styles.input, styles.readOnlyInput]} 
-              value={nomeCliente}
-              editable={false} 
-            />
+  {/* --- SETOR (Modal) --- */}
+  <Text style={[styles.label, { color: '#911a5fff' }]}>S e t o r *</Text>
+  <TouchableOpacity style={styles.input} onPress={() => setModalVisible('setores')}>
+    <Text style={form.setor ? styles.inputText : styles.inputPlaceholder}>
+      {form.setor || "Selecione o setor"}
+    </Text>
+  </TouchableOpacity>
 
-            {/* --- SETOR (Modal) --- */}
-            <Text style={[styles.label, { color: '#911a5fff' }]}>S e t o r *</Text>
-            <TouchableOpacity style={styles.input} onPress={() => setIsSetorModalVisible(true)}>
-              <Text style={setor ? styles.inputText : styles.inputPlaceholder}>
-                {setor || "Selecione o setor"}
-              </Text>
-            </TouchableOpacity>
+  <Text style={[styles.label, { color: '#1e8368ff' }]}>N o m e    d o    c o l a b o r a d o r</Text>
+  <TextInput
+    style={styles.input}
+    value={form.nomeColaborador}
+    onChangeText={(text) => updateForm('nomeColaborador', text)}
+  />
 
-            <Text style={[styles.label, { color: '#1e8368ff' }]}>N o m e    d o    c o l a b o r a d o r</Text>
-            <TextInput
-              style={styles.input}
-              value={nomeColaborador}
-              onChangeText={setNomeColaborador}
-            />
+  <Text style={[styles.label, { color: '#2f1c90ff' }]}>F a m í l i a *</Text>
+  <TouchableOpacity style={styles.input} onPress={() => setModalVisible('familias')}>
+    <Text style={form.familia ? styles.inputText : styles.inputPlaceholder}>
+      {form.familia || "Selecione a família"}
+    </Text>
+  </TouchableOpacity>
 
-            <Text style={[styles.label, { color: '#2f1c90ff' }]}>F a m í l i a *</Text>
-            <TouchableOpacity style={styles.input} onPress={() => setIsFamiliaModalVisible(true)}>
-              <Text style={familia ? styles.inputText : styles.inputPlaceholder}>
-                {familia || "Selecione a família"}
-              </Text>
-            </TouchableOpacity>
+  <Text style={[styles.label, { color: '#520983ff' }]}>T i p o *</Text>
+  <TouchableOpacity style={styles.input} onPress={() => setModalVisible('tipos')}>
+    <Text style={form.tipo ? styles.inputText : styles.inputPlaceholder}>
+      {form.tipo || "Selecione o tipo"}
+    </Text>
+  </TouchableOpacity>
 
-            <Text style={[styles.label, { color: '#520983ff' }]}>T i p o *</Text>
-            <TouchableOpacity style={styles.input} onPress={() => setIsTipoModalVisible(true)}>
-              <Text style={tipo ? styles.inputText : styles.inputPlaceholder}>
-                {tipo || "Selecione o tipo"}
-              </Text>
-            </TouchableOpacity>
+  <Text style={[styles.label, { color: '#7d580eff' }]}>D e s c r i ç ã o    d o    p r o d u t o</Text>
+  <TextInput
+    style={styles.input}
+    value={form.descricao}
+    onChangeText={(text) => updateForm('descricao', text)}
+  />
 
-            <Text style={[styles.label, { color: '#7d580eff' }]}>D e s c r i ç ã o    d o    p r o d u t o</Text>
-            <TextInput
-              style={styles.input}
-              value={descricao}
-              onChangeText={setDescricao}
-            />
+  <Text style={[styles.label, { color: '#8b0932ff' }]}>M a r c a *</Text>
+  <TouchableOpacity style={styles.input} onPress={() => setModalVisible('marcas')}>
+    <Text style={form.marca ? styles.inputText : styles.inputPlaceholder}>
+      {form.marca || "Selecione a marca"}
+    </Text>
+  </TouchableOpacity>
 
-            <Text style={[styles.label, { color: '#8b0932ff' }]}>M a r c a *</Text>
-            <TouchableOpacity style={styles.input} onPress={() => setIsMarcaModalVisible(true)}>
-              <Text style={marca ? styles.inputText : styles.inputPlaceholder}>
-                {marca || "Selecione a marca"}
-              </Text>
-            </TouchableOpacity>
+  <Text style={[styles.label, { color: '#416d0eff' }]}>M o d e l o</Text>
+  <TextInput
+    style={styles.input}
+    value={form.modelo}
+    onChangeText={(text) => updateForm('modelo', text)}
+  />
 
-            <Text style={[styles.label, { color: '#416d0eff' }]}>M o d e l o</Text>
-            <TextInput
-              style={styles.input}
-              value={modelo}
-              onChangeText={setModelo}
-            />
+  <Text style={[styles.label, { color: '#765805ff' }]}>N°    d e    s é r i e</Text>
+  <TextInput
+    style={styles.input}
+    value={form.numeroSerie}
+    onChangeText={(text) => updateForm('numeroSerie', text)}
+  />
 
-            <Text style={[styles.label, { color: '#765805ff' }]}>N°    d e    s é r i e</Text>
-            <TextInput
-              style={styles.input}
-              value={numeroSerie}
-              onChangeText={setNumeroSerie}
-            />
+  <Text style={[styles.label, { color: '#2e4f0bff' }]}>I m e i  1</Text>
+  <TextInput
+    style={styles.input}
+    value={form.imei1}
+    onChangeText={(text) => updateForm('imei1', text)}
+  />
 
-            <Text style={[styles.label, { color: '#2e4f0bff' }]}>I m e i  1</Text>
-            <TextInput
-              style={styles.input}
-              value={imei1}
-              onChangeText={setImei1}
-            />
+  <Text style={[styles.label, { color: '#174a6fff' }]}>I m e i  2</Text>
+  <TextInput
+    style={styles.input}
+    value={form.imei2}
+    onChangeText={(text) => updateForm('imei2', text)}
+  />
 
-            <Text style={[styles.label, { color: '#174a6fff' }]}>I m e i  2</Text>
-            <TextInput
-              style={styles.input}
-              value={imei2}
-              onChangeText={setImei2}
-            />
+  <Text style={[styles.label, { color: '#154b0cff' }]}>S t a t u s    d o    p r o d u t o *</Text>
+  <View style={styles.pickerContainer}>
+    <Picker
+      selectedValue={form.statusProduto}
+      onValueChange={(itemValue) => updateForm('statusProduto', itemValue)}
+      style={styles.picker}
+      dropdownIconColor="#000"
+    >
+       <Picker.Item label="Selecione um status" value="" color="#757575ff" />
+       <Picker.Item label="Novo na caixa" value="novo" color="#000" />
+       <Picker.Item label="Normal em uso" value="normal_em_uso" color="#000" />
+       <Picker.Item label="Defeito em uso" value="defeito_em_uso" color="#000" />
+       <Picker.Item label="Sucata" value="sucata" color="#000" />
+    </Picker>
+  </View>
 
-            <Text style={[styles.label, { color: '#154b0cff' }]}>S t a t u s    d o    p r o d u t o *</Text>
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={statusProduto}
-                onValueChange={(itemValue) => setStatusProduto(itemValue)}
-                style={styles.picker}
-                dropdownIconColor="#000"
-              >
-                 <Picker.Item label="Selecione um status" value="" color="#757575ff" />
-                 <Picker.Item label="Novo na caixa" value="novo" color="#000" />
-                 <Picker.Item label="Normal em uso" value="normal_em_uso" color="#000" />
-                 <Picker.Item label="Defeito em uso" value="defeito_em_uso" color="#000" />
-                 <Picker.Item label="Sucata" value="sucata" color="#000" />
-              </Picker>
-            </View>
+  <TouchableOpacity style={styles.saveButton} onPress={handleEditar}>
+    <Text style={styles.saveButtonText}>Editar</Text>
+  </TouchableOpacity>
 
-            <TouchableOpacity style={styles.saveButton} onPress={handleEditar}>
-              <Text style={styles.saveButtonText}>Salvar Alterações</Text>
-            </TouchableOpacity>
 
             <View style={{ height: 50 }} />
           </View>
@@ -412,43 +299,30 @@ export default function EditarProdutoInventario() {
       </KeyboardAvoidingView>
 
       <SearchableModal
-        visible={isSetorModalVisible}
-        onClose={() => setIsSetorModalVisible(false)}
-        options={filteredSetorOptions}
-        onSelect={onSelectSetor}
-        title="Selecione o Setor"
-        search={setorSearch}
-        setSearch={setSetorSearch}
-      />
-
-      <SearchableModal
-        visible={isFamiliaModalVisible}
-        onClose={() => setIsFamiliaModalVisible(false)}
-        options={filteredFamiliaOptions}
-        onSelect={onSelectFamilia}
-        title="Selecione a Família"
-        search={familiaSearch}
-        setSearch={setFamiliaSearch}
-      />
-
-      <SearchableModal
-        visible={isTipoModalVisible}
-        onClose={() => setIsTipoModalVisible(false)}
-        options={filteredTipoOptions}
-        onSelect={onSelectTipo}
-        title="Selecione o Tipo"
-        search={tipoSearch}
-        setSearch={setTipoSearch}
-      />
-
-      <SearchableModal
-        visible={isMarcaModalVisible}
-        onClose={() => setIsMarcaModalVisible(false)}
-        options={filteredMarcaOptions}
-        onSelect={onSelectMarca}
-        title="Selecione a Marca"
-        search={marcaSearch}
-        setSearch={setMarcaSearch}
+        visible={!!modalVisible}
+        onClose={() => {
+          setModalVisible(null);
+          setSearchText('');
+        }}
+        options={modalVisible ? getFilteredOptions(modalVisible) : []}
+        search={searchText}
+        setSearch={setSearchText}
+        title={
+          modalVisible === 'setores' ? 'Selecione o Setor' :
+          modalVisible === 'familias' ? 'Selecione a Família' :
+          modalVisible === 'tipos' ? 'Selecione o Tipo' :
+          modalVisible === 'marcas' ? 'Selecione a Marca' : 'Selecione'
+        }
+        onSelect={(item) => {
+          // Mapeia o nome da lista (plural) para o campo do banco (singular)
+          const fieldMap = {
+            setores: 'setor',
+            familias: 'familia',
+            tipos: 'tipo',
+            marcas: 'marca'
+          };
+          handleSelectOption(fieldMap[modalVisible], item);
+        }}
       />
     </>
   );
@@ -514,7 +388,7 @@ const styles = StyleSheet.create({
   },
   picker: { height: 55 },
   saveButton: {
-    backgroundColor: '#000',
+    backgroundColor: '#1f5691',
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',
@@ -523,37 +397,10 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: 18,
+    fontSize: 20,
   },
   
 
-  // Estilos do Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  modalContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    maxHeight: '80%',
-    padding: 20,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  modalTitle: { fontSize: 18, fontWeight: 'bold' },
-  searchInput: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 10,
-  },
   optionItem: {
     paddingVertical: 15,
     borderBottomWidth: 1,

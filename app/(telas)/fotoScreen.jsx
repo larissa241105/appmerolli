@@ -5,20 +5,26 @@ import {
   TouchableOpacity, 
   StyleSheet, 
   Alert, 
+  ActivityIndicator, 
   Image, 
-  ActivityIndicator,
-  StatusBar // Usamos StatusBar para controlar a barra de status, não SafeAreaView
+  StatusBar,
+  Platform // Necessário para distinguir iOS de Android
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as FileSystem from 'expo-file-system/legacy';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImageManipulator from 'expo-image-manipulator';
+import * as MediaLibrary from 'expo-media-library'; // Para Android (Galeria)
+import * as Sharing from 'expo-sharing'; // Para iOS (Arquivos)
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { MaterialIcons } from '@expo/vector-icons'; // Assumindo que você usa este pacote de ícones
+import { useIsFocused } from '@react-navigation/native'; // ou expo-router
+
 export default function TelaCamera() {
   const router = useRouter();
   const cameraRef = useRef(null);
+  const isFocused = useIsFocused();
   
   // Hook para pegar as medidas seguras (Notch, Ilha, Home Bar)
   const insets = useSafeAreaInsets();
@@ -26,12 +32,17 @@ export default function TelaCamera() {
   const params = useLocalSearchParams();
   const { tag, etiqueta } = params;
 
+  // Permissões de Câmera
   const [permission, requestPermission] = useCameraPermissions();
+  
+  // Permissões de Galeria (Exclusivo para Android)
+  const [mediaPermission, requestMediaPermission] = MediaLibrary.usePermissions();
 
   const [photo, setPhoto] = useState(null);
   const [saving, setSaving] = useState(false);
   const [facing, setFacing] = useState("back");
 
+  // Verifica permissão da câmera
   if (!permission) return <View style={styles.container} />;
 
   if (!permission.granted) {
@@ -47,23 +58,19 @@ export default function TelaCamera() {
     );
   }
 
-const takePicture = async () => {
+  const takePicture = async () => {
     if (!cameraRef.current) return;
     try {
-      // 1. Tira a foto "bruta" (pode usar quality 1 aqui pois vamos comprimir depois)
+      // 1. Tira a foto "bruta"
       const photoResult = await cameraRef.current.takePictureAsync({ 
         quality: 1,
-        skipProcessing: true // Mantém true para o clique ser rápido
+        skipProcessing: true 
       });
 
       // 2. Manipula a imagem para reduzir tamanho
       const manipResult = await ImageManipulator.manipulateAsync(
         photoResult.uri,
-        [
-          // Redimensiona para uma largura de 1080px (altura ajusta proporcionalmente)
-          // Isso reduz MUITO o tamanho sem perder qualidade visível no celular
-          { resize: { width: 1080 } } 
-        ],
+        [{ resize: { width: 1080 } }],
         { 
           compress: 0.5, 
           format: ImageManipulator.SaveFormat.JPEG 
@@ -77,7 +84,7 @@ const takePicture = async () => {
       console.log(err);
       Alert.alert("Erro", "Não foi possível capturar a imagem.");
     }
-};
+  };
 
   const handleConfirmPhoto = async () => {
     if (!photo) return;
@@ -92,17 +99,52 @@ const takePicture = async () => {
       const seg = String(now.getSeconds()).padStart(2, '0');
 
       const prefixoArquivo = etiqueta || 'SEMTAG';
-      const filename = `${prefixoArquivo}_${dia}-${mes}-${ano}_${hora}-${min}-${seg}.jpg`;
+      
+      // Limpeza de segurança no nome do arquivo (remove barras, dois pontos, etc)
+      const safeTag = prefixoArquivo.replace(/[^a-zA-Z0-9_-]/g, ''); 
+      const filename = `${safeTag}_${dia}-${mes}-${ano}_${hora}-${min}-${seg}.jpg`;
+      
       const destinationDir = `${FileSystem.documentDirectory}CameraAssets/`;
       const newPath = destinationDir + filename;
 
+      // 1. Cria diretório interno se não existir
       const dirInfo = await FileSystem.getInfoAsync(destinationDir);
       if (!dirInfo.exists) {
         await FileSystem.makeDirectoryAsync(destinationDir, { intermediates: true });
       }
 
+      // 2. Salva na pasta do App (Necessário tanto para iOS quanto Android funcionarem)
       await FileSystem.copyAsync({ from: photo, to: newPath });
 
+      // --- LÓGICA DE EXPORTAÇÃO (DIFERENÇA ENTRE OS E ANDROID) ---
+
+      if (Platform.OS === 'android') {
+        // === ANDROID: Tenta salvar na Galeria ===
+        try {
+          if (!mediaPermission?.granted) {
+             const permResponse = await requestMediaPermission();
+             if (permResponse.granted) {
+               await MediaLibrary.createAssetAsync(newPath);
+             }
+          } else {
+             await MediaLibrary.createAssetAsync(newPath);
+          }
+        } catch (e) {
+          console.log("Erro ao salvar na galeria Android (não crítico):", e);
+        }
+
+      } else if (Platform.OS === 'ios') {
+        // === IOS: Abre menu para Salvar em Arquivos ===
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(newPath, {
+            UTI: 'public.jpeg',
+            mimeType: 'image/jpeg',
+            dialogTitle: `Salvar ${filename}`
+          });
+        }
+      }
+
+      // 3. Salva referência no AsyncStorage e Navega
       if (tag) {
         await AsyncStorage.setItem(tag, newPath);
       } else {
@@ -163,13 +205,15 @@ const takePicture = async () => {
       ) : (
         // --- CÂMERA ---
         <View style={{ flex: 1 }}>
+          {isFocused && (
           <CameraView
             style={StyleSheet.absoluteFill}
             facing={facing}
             ref={cameraRef}
-            playSoundOnCapture={false}
+            mode="picture"
+            
           />
-          
+          )}
           {/* Botão Fechar respeitando o Top Notch */}
           <View style={[styles.topButtonContainer, { top: insets.top + 10 }]}>
             <TouchableOpacity onPress={handleCancel} style={styles.closeBtn}>

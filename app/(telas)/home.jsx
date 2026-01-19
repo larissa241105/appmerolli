@@ -251,7 +251,8 @@ const styles = StyleSheet.create({
 
   clientLabel:{
     fontSize: 20,
-    fontWeight: '700',
-  
+    fontWeight: '600',
+    justifyContent: 'center',
+     alignItems: 'center', 
   },
 });

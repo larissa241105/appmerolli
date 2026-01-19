@@ -8,9 +8,6 @@ import {
   StyleSheet,
   Image,
   Alert,
-  Modal,
-  FlatList,
-  Button,
   KeyboardAvoidingView, Platform
 } from 'react-native';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
@@ -23,52 +20,10 @@ import { useCallback } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-
+import { STORAGE_KEYS, IGNORE_TAGS } from '../constants/index'; // Supondo que criou acima
+import SearchableModal from '../src/components/SearchableModal';
+import { useMemo } from 'react';
 const API_BASE_URL = 'https://orca-app-kokvo.ondigitalocean.app';
-
-
-const SearchableModal = ({
-  visible,
-  onClose,
-  options,
-  onSelect,
-  title,
-  search,
-  setSearch
-}) => {
-  return (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={visible}
-      onRequestClose={onClose}
-    >
-      <View style={styles.modalOverlay}>
-        <SafeAreaProvider style={styles.modalContainer}>
-          <Text style={styles.modalTitle}>{title}</Text>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Pesquisar..."
-            placeholderTextColor="#757575ff"
-            value={search}
-            onChangeText={setSearch}
-          />
-          <FlatList
-            data={options}
-            keyExtractor={(item, index) => `${item}-${index}`}
-            renderItem={({ item }) => (
-              <TouchableOpacity style={styles.modalItem} onPress={() => onSelect(item)}>
-                <Text style={styles.modalItemText}>{item}</Text>
-              </TouchableOpacity>
-            )}
-            ItemSeparatorComponent={() => <View style={styles.separator} />}
-          />
-          <Button title="Fechar" onPress={onClose} color="#9c2a2aff" />
-        </SafeAreaProvider>
-      </View>
-    </Modal>
-  );
-};
 
 
 export default function CadastroScreen() {
@@ -79,9 +34,7 @@ export default function CadastroScreen() {
    const [pedidoNumero, setPedidoNumero] = useState(null);
 
     const [codigoFinal, setCodigoFinal] = useState(null);
-
-   const [nossaTag, setNossaTag] = useState('');
-   const [tagAntiga, settagAntiga] = useState('');
+    
    const [nomeCliente, setNomeCliente] = useState('');
    const [setor, setSetor] = useState('');
    const [familia, setFamilia] = useState('');
@@ -95,53 +48,14 @@ export default function CadastroScreen() {
    const [imei2, setImei2] = useState('');
    const [selectedStatus, setSelectedStatus] = useState('');
 
-   const params = useLocalSearchParams();
-   const { tag } = params; // 'tag' do cliente (se vier da tela anterior)
-
 const [isSetorModalVisible, setIsSetorModalVisible] = useState(false);
-
-//Setor
-  const [setorSearch, setSetorSearch] = useState('');
-
-  const [setorOptions, setSetorOptions] = useState([]);
-
-  const [filteredSetorOptions, setFilteredSetorOptions] = useState([]);
-
-
-
-  // Familia
 
   const [isFamiliaModalVisible, setIsFamiliaModalVisible] = useState(false);
 
-  const [familiaSearch, setFamiliaSearch] = useState('');
-
-  const [familiaOptions, setFamiliaOptions] = useState([]);
-
-  const [filteredFamiliaOptions, setFilteredFamiliaOptions] = useState([]);
-
-
-
-  // Tipo
-
   const [isTipoModalVisible, setIsTipoModalVisible] = useState(false);
-
-  const [tipoSearch, setTipoSearch] = useState('');
-
-  const [tipoOptions, setTipoOptions] = useState([]);
-
-  const [filteredTipoOptions, setFilteredTipoOptions] = useState([]);
-
-
-
-  // Marca
 
   const [isMarcaModalVisible, setIsMarcaModalVisible] = useState(false);
 
-  const [marcaSearch, setMarcaSearch] = useState('');
-
-  const [marcaOptions, setMarcaOptions] = useState([]);
-
-  const [filteredMarcaOptions, setFilteredMarcaOptions] = useState([]);
 
    // --- 🚀 CORREÇÃO 1: Estados para CADA foto ---
    const [fotoFrenteUri, setFotoFrenteUri] = useState(null);
@@ -153,347 +67,232 @@ const [isSetorModalVisible, setIsSetorModalVisible] = useState(false);
    const [isSaving, setIsSaving] = useState(false);
 
 
-   useEffect(() => {
-    // Tenta pegar o valor de 'tag' (do scanner) ou 'etiqueta' (da câmera)
-    const codigoRecebido = params.tag || params.etiqueta;
+const [fotos, setFotos] = useState({
+    frente: null,
+    lateral: null,
+    qrcode: null,
+    qrcode2: null
+  });
 
-    // Lista de valores que NÃO SÃO códigos de cliente
-    const COMANDOS_IGNORAR = [
-      'FOTO_QRCODE', 
-      'FOTO_FRENTE', 
-      'FOTO_LATERAL', 
-      'FOTO_QRCODE2', 
-      'null', 
-      'undefined', 
-      ''
-    ];
+  // Estados de Opções (Dropdowns)
+  const [options, setOptions] = useState({ setores: [], familias: [], tipos: [], marcas: [] });
+  const [searchText, setSearchText] = useState({ setor: '', familia: '', tipo: '', marca: '' });
 
-    // Só atualiza o estado se for um código válido
-    if (codigoRecebido && !COMANDOS_IGNORAR.includes(codigoRecebido)) {
-      console.log("✅ Cadastro - Tag do Cliente fixada:", codigoRecebido);
-      setCodigoFinal(codigoRecebido);
-    }
-  }, [params]);
+  const params = useLocalSearchParams();
+   const { tag } = params; // 'tag' do cliente (se vier da tela anterior)
 
 
-
-  
-
-
-   // --- 🚀 CORREÇÃO 2: useFocusEffect para carregar TODAS as fotos ---
-   useFocusEffect(
-     useCallback(() => {
-        const carregarFotosPendentes = async () => {
-          try {
-             // Lista de chaves que esperamos do AsyncStorage
-             const tags = [
-               { key: 'FOTO_FRENTE', setter: setFotoFrenteUri },
-               { key: 'FOTO_LATERAL', setter: setFotoLateralUri },
-               { key: 'FOTO_QRCODE2', setter: setFotoQrcodeUri2 },
-               { key: 'FOTO_QRCODE', setter: setFotoQrcodeUri },
-             ];
-
-             for (const item of tags) {
-               // Verifica se a foto existe no AsyncStorage
-               const uri = await AsyncStorage.getItem(item.key);
-               if (uri) {
-                  console.log(`Foto pendente encontrada (${item.key}):`, uri);
-                  item.setter(uri); // Atualiza o estado (ex: setFotoFrenteUri)
-                  await AsyncStorage.removeItem(item.key); // Limpa
-               }
-             }
-          } catch (e) {
-             console.error("Erro ao buscar fotos pendentes:", e);
-          }
-        };
-
-        carregarFotosPendentes();
-     }, []) // Dependências vazias, roda a cada foco
-   );
-
-
-  
-  // --- Efeito para buscar parâmetros da rota ---
-useEffect(() => {
-     console.log('Parâmetros recebidos da navegação:', params);
-     if (params.osId) setOsId(params.osId);
-     if (params.pedidoNumero) setPedidoNumero(params.pedidoNumero);
-   }, [params]);
-
-   // --- Efeito para buscar dados das APIs (Seu código original) ---
-   useEffect(() => {
-     const fetchData = async () => {
-        try {
-          // (Sua lógica de buscar Setores, Familias, Tipos, Marcas)
-          console.log("Buscando dados das APIs...");
-        } catch (error) {
-          console.error('Erro ao buscar dados:', error);
-          Alert.alert('Erro de Rede', 'Não foi possível carregar os dados.');
-        }
-     };
-     fetchData();
-   }, []);
-
-  // --- Efeito para buscar dados das APIs (Setor, Familia, Tipo, Marca) ---
+  // --- HOOK 1: Carregar Opções da API (Executa uma vez) ---
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchOptions = async () => {
       try {
-        // Buscar Setores
-        const setorRes = await axios.get(`${API_BASE_URL}/visualizarsetor`);
-        const setores = setorRes.data.map(item => item.setor);
-        setSetorOptions(setores);
-        setFilteredSetorOptions(setores);
+        const [setorRes, familiaRes, tipoRes, marcaRes] = await Promise.all([
+          axios.get(`${API_BASE_URL}/visualizarsetor`),
+          axios.get(`${API_BASE_URL}/visualizarfamilia`),
+          axios.get(`${API_BASE_URL}/visualizartipoproduto`),
+          axios.get(`${API_BASE_URL}/visualizarmarca`)
+        ]);
 
-        // Buscar Familias
-        const familiaRes = await axios.get(`${API_BASE_URL}/visualizarfamilia`);
-        const familias = familiaRes.data.map(item => item.familia);
-        setFamiliaOptions(familias);
-        setFilteredFamiliaOptions(familias);
-
-        // Buscar Tipos
-        const tipoRes = await axios.get(`${API_BASE_URL}/visualizartipoproduto`);
-        const tipos = tipoRes.data.map(item => item.tipo);
-        setTipoOptions(tipos);
-        setFilteredTipoOptions(tipos);
-
-        // Buscar Marcas
-        const marcaRes = await axios.get(`${API_BASE_URL}/visualizarmarca`);
-        const marcas = marcaRes.data.map(item => item.marca);
-        setMarcaOptions(marcas);
-        setFilteredMarcaOptions(marcas);
-
+        setOptions({
+          setores: setorRes.data.map(i => i.setor),
+          familias: familiaRes.data.map(i => i.familia),
+          tipos: tipoRes.data.map(i => i.tipo),
+          marcas: marcaRes.data.map(i => i.marca),
+        });
       } catch (error) {
-        console.error('Erro ao buscar dados para os selecionáveis:', error);
-        Alert.alert('Erro de Rede', 'Não foi possível carregar os dados para os campos de seleção. Verifique a API.');
+        console.error('Erro ao buscar opções:', error);
+        Alert.alert('Erro', 'Falha ao carregar listas de seleção.');
       }
     };
-
-    fetchData();
+    fetchOptions();
   }, []);
 
-
+  // --- HOOK 2: Logica de Tag/Scanner ---
   useEffect(() => {
-    const carregarUltimosDados = async () => {
-      try {
-        // Recupera os valores salvos
-        const lastSetor = await AsyncStorage.getItem('last_setor');
-        const lastFamilia = await AsyncStorage.getItem('last_familia');
-        const lastTipo = await AsyncStorage.getItem('last_tipo');
-        const lastMarca = await AsyncStorage.getItem('last_marca');
-        const lastStatus = await AsyncStorage.getItem('last_status');
-        const lastColaborador = await AsyncStorage.getItem('last_colaborador');
-        const lastDescricao = await AsyncStorage.getItem('last_descricao');
-        const lastCliente = await AsyncStorage.getItem('last_cliente');
+    const tagRecebida = params.tag || params.etiqueta;
+    if (tagRecebida && !IGNORE_TAGS.includes(tagRecebida)) {
+      console.log("✅ Tag fixada:", tagRecebida);
+      setCodigoFinal(tagRecebida);
+    }
+  }, [params.tag, params.etiqueta]);
 
-        if (lastSetor) setSetor(lastSetor);
-        if (lastFamilia) setFamilia(lastFamilia);
-        if (lastTipo) setTipo(lastTipo);
-        if (lastMarca) setMarca(lastMarca);
-        if (lastStatus) setSelectedStatus(lastStatus);
-        if (lastColaborador) setNomeColaborador(lastColaborador);  
-        if (lastCliente) setNomeCliente(lastCliente);
-         if (lastDescricao) setDescricao(lastDescricao);
+  // --- HOOK 3: Carregar Fotos Pendentes e Dados Anteriores ---
+  useFocusEffect(
+    useCallback(() => {
+      const loadPersistedData = async () => {
+        try {
+          // 1. Carregar Fotos
+          const [frente, lateral, qrcode, qrcode2] = await Promise.all([
+            AsyncStorage.getItem(STORAGE_KEYS.FOTO_FRENTE),
+            AsyncStorage.getItem(STORAGE_KEYS.FOTO_LATERAL),
+            AsyncStorage.getItem(STORAGE_KEYS.QRCODE),
+            AsyncStorage.getItem(STORAGE_KEYS.QRCODE2),
+          ]);
+          
+          setFotos(prev => ({
+            ...prev,
+            frente: frente || prev.frente,
+            lateral: lateral || prev.lateral,
+            qrcode: qrcode || prev.qrcode,
+            qrcode2: qrcode2 || prev.qrcode2
+          }));
 
-         if (params.nomeCliente && params.nomeCliente !== 'null') {
+          // 2. Carregar Últimos Dados Salvos (Preenchimento automático)
+          const keys = [
+            STORAGE_KEYS.LAST_SETOR, STORAGE_KEYS.LAST_FAMILIA, 
+            STORAGE_KEYS.LAST_TIPO, STORAGE_KEYS.LAST_MARCA, 
+            STORAGE_KEYS.LAST_STATUS, STORAGE_KEYS.LAST_COLABORADOR,
+            STORAGE_KEYS.LAST_CLIENTE, STORAGE_KEYS.LAST_DESCRICAO
+          ];
+          
+          const stores = await AsyncStorage.multiGet(keys);
+          const data = Object.fromEntries(stores); // Converte array de arrays em objeto
+
+          if (data[STORAGE_KEYS.LAST_SETOR]) setSetor(data[STORAGE_KEYS.LAST_SETOR]);
+          if (data[STORAGE_KEYS.LAST_FAMILIA]) setFamilia(data[STORAGE_KEYS.LAST_FAMILIA]);
+          if (data[STORAGE_KEYS.LAST_TIPO]) setTipo(data[STORAGE_KEYS.LAST_TIPO]);
+          if (data[STORAGE_KEYS.LAST_MARCA]) setMarca(data[STORAGE_KEYS.LAST_MARCA]);
+          if (data[STORAGE_KEYS.LAST_STATUS]) setSelectedStatus(data[STORAGE_KEYS.LAST_STATUS]);
+          if (data[STORAGE_KEYS.LAST_COLABORADOR]) setNomeColaborador(data[STORAGE_KEYS.LAST_COLABORADOR]);
+          if (data[STORAGE_KEYS.LAST_DESCRICAO]) setDescricao(data[STORAGE_KEYS.LAST_DESCRICAO]);
+
+          // Lógica do Cliente (Prioridade: Params > Storage)
+          if (params.nomeCliente && params.nomeCliente !== 'null') {
             setNomeCliente(params.nomeCliente);
-            console.log("Nome do cliente carregado via parâmetros:", params.nomeCliente);
-        } 
-        // 2. Se não veio parâmetro, usa o último salvo (Fallback)
-        else if (lastCliente) {
-            setNomeCliente(lastCliente);
-            console.log("Nome do cliente recuperado do histórico:", lastCliente);
+          } else if (data[STORAGE_KEYS.LAST_CLIENTE]) {
+            setNomeCliente(data[STORAGE_KEYS.LAST_CLIENTE]);
+          }
+
+        } catch (e) {
+          console.error("Erro ao carregar dados persistidos:", e);
         }
-        // 3. Se não tiver nenhum, fica vazio para digitação manual
-        
-        console.log("Dados do último cadastro recuperados/verificados com sucesso!");
-      } catch (e) {
-        console.error("Erro ao recuperar dados anteriores:", e);
-      }
-    };
-
-    carregarUltimosDados();
-    // Adicione params.nomeCliente nas dependências para garantir atualização se a rota mudar
-  }, [params.nomeCliente]);
+      };
       
+      loadPersistedData();
+    }, [params.nomeCliente])
+  );
 
-  
-  // Filtro Setor
-  useEffect(() => {
-    if (setorSearch === '') {
-      setFilteredSetorOptions(setorOptions);
-    } else {
-      setFilteredSetorOptions(
-        setorOptions.filter(option =>
-          option.toLowerCase().includes(setorSearch.toLowerCase())
-        )
-      );
-    }
-  }, [setorSearch, setorOptions]);
+  // --- FILTROS OTIMIZADOS (Substitui os 4 useEffects) ---
+  const filteredSetores = useMemo(() => 
+    options.setores.filter(o => o.toLowerCase().includes(searchText.setor.toLowerCase())), 
+  [options.setores, searchText.setor]);
 
-  // Filtro Família
-  useEffect(() => {
-    if (familiaSearch === '') {
-      setFilteredFamiliaOptions(familiaOptions);
-    } else {
-      setFilteredFamiliaOptions(
-        familiaOptions.filter(option =>
-          option.toLowerCase().includes(familiaSearch.toLowerCase())
-        )
-      );
-    }
-  }, [familiaSearch, familiaOptions]);
+  const filteredFamilias = useMemo(() => 
+    options.familias.filter(o => o.toLowerCase().includes(searchText.familia.toLowerCase())), 
+  [options.familias, searchText.familia]);
 
-  // Filtro Tipo
-  useEffect(() => {
-    if (tipoSearch === '') {
-      setFilteredTipoOptions(tipoOptions);
-    } else {
-      setFilteredTipoOptions(
-        tipoOptions.filter(option =>
-          option.toLowerCase().includes(tipoSearch.toLowerCase())
-        )
-      );
-    }
-  }, [tipoSearch, tipoOptions]);
+  const filteredTipos = useMemo(() => 
+    options.tipos.filter(o => o.toLowerCase().includes(searchText.tipo.toLowerCase())), 
+  [options.tipos, searchText.tipo]);
 
-  // Filtro Marca
-  useEffect(() => {
-    if (marcaSearch === '') {
-      setFilteredMarcaOptions(marcaOptions);
-    } else {
-      setFilteredMarcaOptions(
-        marcaOptions.filter(option =>
-          option.toLowerCase().includes(marcaSearch.toLowerCase())
-        )
-      );
-    }
-  }, [marcaSearch, marcaOptions]);
+  const filteredMarcas = useMemo(() => 
+    options.marcas.filter(o => o.toLowerCase().includes(searchText.marca.toLowerCase())), 
+  [options.marcas, searchText.marca]);
 
 
+  // --- FUNÇÕES DE SELEÇÃO (Para corrigir o erro) ---
   
   const onSelectSetor = (item) => {
     setSetor(item);
     setIsSetorModalVisible(false);
-    setSetorSearch(''); 
+    setSearchText(prev => ({ ...prev, setor: '' })); // Limpa a busca do setor
   };
-  
+
   const onSelectFamilia = (item) => {
     setFamilia(item);
     setIsFamiliaModalVisible(false);
-    setFamiliaSearch('');
+    setSearchText(prev => ({ ...prev, familia: '' })); // Limpa a busca da familia
   };
 
   const onSelectTipo = (item) => {
     setTipo(item);
     setIsTipoModalVisible(false);
-    setTipoSearch('');
+    setSearchText(prev => ({ ...prev, tipo: '' })); // Limpa a busca do tipo
   };
 
   const onSelectMarca = (item) => {
     setMarca(item);
     setIsMarcaModalVisible(false);
-    setMarcaSearch('');
+    setSearchText(prev => ({ ...prev, marca: '' })); // Limpa a busca da marca
   };
 
 
-  const handleSalvar = async () => {
+  // --- FUNÇÃO DE SALVAR ---
+const handleSalvar = async () => {
     if (isSaving) return;
 
-    const osIdFinal = osId;
-    const pedidoNumeroFinal = pedidoNumero;
+    // BLINDAGEM: Tenta pegar do State, se falhar pega direto do Params
+    const currentOsId = osId || params.osId;
+    const currentPedido = pedidoNumero || params.pedidoNumero;
     const tagParaSalvar = codigoFinal || params.tag || params.etiqueta;
-    const tagAntiga = params.tagAntiga
 
-    if (!osIdFinal || !pedidoNumeroFinal) {
-      Alert.alert('Erro', 'Dados de navegação perdidos.');
-      return;
+    if (!currentOsId || !currentPedido) {
+        console.log("ERRO CRÍTICO: Params:", params, "State:", { osId, pedidoNumero });
+        return Alert.alert('Erro', 'Dados de navegação (OS ou Pedido) perdidos. Tente voltar e entrar novamente.');
     }
 
-    if (!tagParaSalvar) {
-       Alert.alert('Atenção', 'Nenhuma TAG identificada.');
-       return;
-    }
+    if (!tagParaSalvar) return Alert.alert('Atenção', 'Nenhuma TAG identificada.');
 
     if (!nomeCliente || !selectedStatus || !setor || !familia || !tipo || !marca) {
-      Alert.alert('Erro', 'Preencha os campos obrigatórios (*).');
-      return;
+      return Alert.alert('Erro', 'Preencha os campos obrigatórios (*).');
     }
 
     setIsSaving(true);
 
-    const payload = {
-      osId: osIdFinal,
-      pedidoNumero: pedidoNumeroFinal,
-      tagCliente: tagParaSalvar,
-      tagAntiga: tagAntiga,
-      nossaTag,
-      nomeCliente,
-      setor,
-      nomeColaborador,
-      familia,
-      tipo,
-      descricao,
-      marca,
-      modelo: modelo ? modelo : null,
-      numeroSerie: numeroSerie ? numeroSerie : null,
-      imei1: imei1 ? imei1 : null,
-      imei2: imei2 ? imei2 : null,
-      statusProduto: selectedStatus,
-    };
-
     try {
+      const payload = {
+        osId: currentOsId,
+        pedidoNumero: currentPedido,
+        tagCliente: tagParaSalvar,
+        tagAntiga: params.tagAntiga,
+        nomeCliente, setor, nomeColaborador, familia, tipo, descricao, marca,
+        statusProduto: selectedStatus,
+        modelo: modelo || null,
+        numeroSerie: numeroSerie || null,
+      };
 
       await axios.post(`${API_BASE_URL}/api/inventario`, payload);
 
-      let mensagemSucesso = 'Item cadastrado com sucesso!';
-
-
-      const fotos = [fotoFrenteUri, fotoLateralUri, fotoQrcodeUri2, fotoQrcodeUri];
-      const fotosParaSalvar = fotos.filter(uri => uri);
-
-      if (fotosParaSalvar.length > 0) {
-        if (galleryPermission?.granted || (await requestGalleryPermission()).granted) {
-            for (const uri of fotosParaSalvar) {
-              await MediaLibrary.saveToLibraryAsync(uri);
-            }
-            mensagemSucesso += ' (Fotos salvas).';
+      // Salvar Fotos
+      const fotosArray = Object.values(fotos).filter(uri => uri);
+      if (fotosArray.length > 0) {
+        const perm = await (galleryPermission?.granted ? Promise.resolve({ granted: true }) : requestGalleryPermission());
+        if (perm.granted) {
+          await Promise.all(fotosArray.map(uri => MediaLibrary.saveToLibraryAsync(uri)));
         }
       }
 
+      // Salvar Preferências
       await AsyncStorage.multiSet([
-        ['last_setor', setor],
-        ['last_familia', familia],
-        ['last_tipo', tipo],
-        ['last_marca', marca],
-        ['last_status', selectedStatus],
-        ['last_colaborador', nomeColaborador || ''], 
-        ['last_cliente', nomeCliente || ''],
-        ['last_descricao', descricao || '']
+        [STORAGE_KEYS.LAST_SETOR, setor],
+        [STORAGE_KEYS.LAST_FAMILIA, familia],
+        [STORAGE_KEYS.LAST_TIPO, tipo],
+        [STORAGE_KEYS.LAST_MARCA, marca],
+        [STORAGE_KEYS.LAST_STATUS, selectedStatus],
+        [STORAGE_KEYS.LAST_COLABORADOR, nomeColaborador || ''],
+        [STORAGE_KEYS.LAST_CLIENTE, nomeCliente || ''],
+        [STORAGE_KEYS.LAST_DESCRICAO, descricao || '']
       ]);
-      console.log("Preferências salvas para o próximo item!");
 
-      Alert.alert('Sucesso!', mensagemSucesso, [
+      // Limpar Fotos Pendentes
+      await AsyncStorage.multiRemove([
+        STORAGE_KEYS.FOTO_FRENTE, STORAGE_KEYS.FOTO_LATERAL,
+        STORAGE_KEYS.QRCODE, STORAGE_KEYS.QRCODE2
+      ]);
+
+      Alert.alert('Sucesso!', 'Item cadastrado com sucesso.', [
         { 
           text: 'OK', 
-          onPress: () => {
-            router.replace({
-                pathname: "home",
-                params: { 
-                    osId: osIdFinal,
-                    pedidoNumero: pedidoNumeroFinal,
-                    cliente: params.cliente, 
-                    
-                    tag: null, 
-                    etiqueta: null 
-                }
-            });
-          } 
+          onPress: () => router.replace({
+            pathname: "home",
+            params: { osId: currentOsId, pedidoNumero: currentPedido, cliente: params.cliente }
+          })
         }
       ]);
 
     } catch (error) {
       console.error('Erro ao salvar:', error);
-      Alert.alert('Erro', 'Falha ao salvar: ' + error.message);
+      Alert.alert('Erro', `Falha ao salvar: ${error.message}`);
     } finally {
       setIsSaving(false);
     }
@@ -559,14 +358,6 @@ const renderMiniatura = (uri, label) => {
               editable={false}
             />
 
-            <Text style={[styles.label, { color: '#9c2a2aff' }]}>N o s s a    t a g *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="N o s s a  t a g"
-              placeholderTextColor="#757575ff"
-              value={nossaTag}
-              onChangeText={setNossaTag}
-            />
 
             <Text style={[styles.label, { color: '#4c6d09ff' }]}>N o m e    d o    c l i e n t e *</Text>
             <TextInput
@@ -686,41 +477,43 @@ const renderMiniatura = (uri, label) => {
         <SearchableModal
           visible={isSetorModalVisible}
           onClose={() => setIsSetorModalVisible(false)}
-          options={filteredSetorOptions}
-          onSelect={onSelectSetor}
+          options={filteredSetores} 
+          onSelect={onSelectSetor} 
           title="Selecione o Setor"
-          search={setorSearch}
-          setSearch={setSetorSearch}
+          search={searchText.setor} 
+          setSearch={(text) => setSearchText(prev => ({ ...prev, setor: text }))} 
         />
 
+        {/* --- FAMÍLIA --- */}
         <SearchableModal
           visible={isFamiliaModalVisible}
           onClose={() => setIsFamiliaModalVisible(false)}
-          options={filteredFamiliaOptions}
+          options={filteredFamilias} // Variável do useMemo
           onSelect={onSelectFamilia}
           title="Selecione a Família"
-          search={familiaSearch}
-          setSearch={setFamiliaSearch}
+          search={searchText.familia}
+          setSearch={(text) => setSearchText(prev => ({ ...prev, familia: text }))}
         />
 
+        {/* --- TIPO --- */}
         <SearchableModal
           visible={isTipoModalVisible}
           onClose={() => setIsTipoModalVisible(false)}
-          options={filteredTipoOptions}
+          options={filteredTipos} // Variável do useMemo
           onSelect={onSelectTipo}
           title="Selecione o Tipo"
-          search={tipoSearch}
-          setSearch={setTipoSearch}
+          search={searchText.tipo}
+          setSearch={(text) => setSearchText(prev => ({ ...prev, tipo: text }))}
         />
 
         <SearchableModal
           visible={isMarcaModalVisible}
           onClose={() => setIsMarcaModalVisible(false)}
-          options={filteredMarcaOptions}
+          options={filteredMarcas}
           onSelect={onSelectMarca}
           title="Selecione a Marca"
-          search={marcaSearch}
-          setSearch={setMarcaSearch}
+          search={searchText.marca}
+          setSearch={(text) => setSearchText(prev => ({ ...prev, tipo: text }))}
         />
 
     
@@ -769,9 +562,9 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
     borderRadius: 8,
     paddingHorizontal: 15,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: '#333',
+    paddingVertical: 14,
+    fontSize: 18,
+    color: '#0c0c0c',
     justifyContent: 'center',
   },
   readOnlyInput: {
@@ -779,8 +572,8 @@ const styles = StyleSheet.create({
     color: '#555',
   },
   inputText: {
-    fontSize: 16,
-    color: '#333',
+    fontSize: 18,
+    color: '#0c0c0c',
   },
   inputPlaceholder: {
     fontSize: 16,
@@ -801,7 +594,7 @@ pickerContainer: {
 
   },
   saveButton: {
-    backgroundColor: '#28a745',
+    backgroundColor: '#125826',
     borderRadius: 8,
     paddingVertical: 15,
     alignItems: 'center',
@@ -814,50 +607,8 @@ pickerContainer: {
   },
   saveButtonText: {
     color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContainer: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    maxHeight: '80%',
-  },
-  modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 15,
-    color: '#333',
-  },
-  searchInput: {
-    backgroundColor: '#f0f0f0',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    fontSize: 16,
-    color: '#333',
-    marginBottom: 15,
-  },
-  modalItem: {
-    paddingVertical: 15,
-    paddingHorizontal: 10,
-  },
-  modalItemText: {
-    fontSize: 17,
-    color: '#444',
-  },
-  separator: {
-    height: 1,
-    backgroundColor: '#eee',
   },
 
   fotosSection: {

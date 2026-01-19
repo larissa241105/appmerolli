@@ -3,14 +3,15 @@ import { View, Text, Image, StyleSheet, TouchableOpacity, TextInput, Alert,Platf
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 const QrcodeScreen = () => {
-    // Pegamos o inset do topo para o header não ficar embaixo da barra de status (bateria/hora)
     const insets = useSafeAreaInsets();
-    
-    const [plaquetaAtualValue, setplaquetaAtualValue] = useState('');
+    const router = useRouter();
     const params = useLocalSearchParams();
-
+    
+    // Nome de estado simplificado e padronizado
+    const [plaqueta, setPlaqueta] = useState('');
 
     const handleScanQrcode = () => {
         router.push({
@@ -20,81 +21,79 @@ const QrcodeScreen = () => {
     };
 
     const handleSearchPlaqueta = () => {
-        if (!plaquetaAtualValue.trim()) {
-            Alert.alert('Atenção', 'Por favor, digite o número da plaqueta.');
-            return;
+        const tagLimpa = plaqueta.trim();
+
+        if (!tagLimpa) {
+            return Alert.alert('Atenção', 'Por favor, digite o número da plaqueta.');
         }
-       
-        console.log(`Consultando plaqueta: ${plaquetaAtualValue}`);
+        
+        console.log(`Consultando plaqueta: ${tagLimpa}`);
 
         router.navigate({
             pathname: "home",
             params: {
                 ...params, 
-                tag: plaquetaAtualValue.trim(),
-                
+                tag: tagLimpa, 
             }
         }); 
     };
 
     return (
-        <View style={{ flex: 1, backgroundColor: '#ffffffff' }}>
+        <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
             <Stack.Screen options={{ headerShown: false }} />
 
             <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                    <MaterialIcons name="arrow-back" size={28} color="#ffffffff" />
+                <TouchableOpacity onPress={router.back} style={styles.backBtn}>
+                    <MaterialIcons name="arrow-back" size={28} color="#FFFFFF" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Digitar Tag</Text>
             </View>
-<KeyboardAvoidingView 
+
+            <KeyboardAvoidingView 
                 style={{ flex: 1 }} 
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             >
-               
                 <ScrollView 
                     contentContainerStyle={styles.scrollContent} 
                     keyboardShouldPersistTaps="handled"
                 >
-                <View style={styles.contentContainer}>
-                    <TouchableOpacity
-                        style={styles.qrButton}
-                        onPress={handleScanQrcode}
-                        activeOpacity={0.7}
-                    >
-                        <Text style={styles.qrButtonTitle}>Bipar QR Code do Cliente</Text>
-                        <Image
-                            source={require('../../assets/images/qrcode.png')}
-                            style={styles.qrImage}
-                        />
-                        <Text style={styles.qrButtonSubtitle}>Toque no ícone para abrir o leitor</Text>
-                    </TouchableOpacity>
-
-                    <View style={styles.dividerContainer}>
-                        <View style={styles.dividerLine} />
-                        <Text style={styles.dividerText}>OU</Text>
-                        <View style={styles.dividerLine} />
-                    </View>
-
-                    <View style={styles.inputSection}>
-                        <Text style={styles.inputLabel}>Digitar Número da Plaqueta</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Ex: 123456"
-                            placeholderTextColor="#999"
-                            keyboardType="numeric"
-                            maxLength={10} 
-                            value={plaquetaAtualValue}
-                            onChangeText={setplaquetaAtualValue} 
-                        />
-                        <TouchableOpacity style={styles.saveButton} onPress={handleSearchPlaqueta}>
-                            <Text style={styles.saveButtonText}>Salvar</Text>
+                    <View style={styles.contentContainer}>
+                        <TouchableOpacity
+                            style={styles.qrButton}
+                            onPress={handleScanQrcode}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={styles.qrButtonTitle}>Bipar QR Code do Cliente</Text>
+                            <Image
+                                source={require('../../assets/images/qrcode.png')}
+                                style={styles.qrImage}
+                            />
+                            <Text style={styles.qrButtonSubtitle}>Toque no ícone para abrir o leitor</Text>
                         </TouchableOpacity>
+
+                        <View style={styles.dividerContainer}>
+                            <View style={styles.dividerLine} />
+                            <Text style={styles.dividerText}>OU</Text>
+                            <View style={styles.dividerLine} />
+                        </View>
+
+                        <View style={styles.inputSection}>
+                            <Text style={styles.inputLabel}>Digitar Número da Plaqueta</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Ex: 123456"
+                                placeholderTextColor="#999"
+                                keyboardType="numeric"
+                                maxLength={10} 
+                                value={plaqueta}
+                                onChangeText={setPlaqueta} 
+                            />
+                            <TouchableOpacity style={styles.saveButton} onPress={handleSearchPlaqueta}>
+                                <Text style={styles.saveButtonText}>Salvar</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
-             
-               
-            </View>
-             </ScrollView>
+                </ScrollView>
             </KeyboardAvoidingView>
         </View>
     );

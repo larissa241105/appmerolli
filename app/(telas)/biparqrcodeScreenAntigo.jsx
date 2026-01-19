@@ -30,6 +30,7 @@ const handleBarCodeScanned = ({ type, data }) => {
                 pedidoNumero: pedidoNumero  
               };
 
+
         console.log("Tela QRCODE vai enviar para Cadastro:", paramsParaNavegar);
                   router.navigate({
                      pathname: "home",

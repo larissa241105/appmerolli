@@ -2,7 +2,7 @@
   "expo": {
     "name": "MerolliApp",
     "slug": "Merolli",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/logo.png",
     "scheme": "merolliapp",
@@ -13,12 +13,16 @@
       "bundleIdentifier": "Merolli",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "experiments": {
+      "expoAtlas": true
+    }
     },
     "android": {
       "adaptiveIcon": {},
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
+      "jsEngine": "hermes",
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
@@ -40,13 +44,14 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Permitir que $(PRODUCT_NAME) acesse sua câmera para tirar fotos de itens de inventário."
+          "cameraPermission": "Permitir que $(PRODUCT_NAME) acesse sua câmera para tirar fotos de itens de inventário.",
+          "microphonePermission": "Permitir que $(PRODUCT_NAME) acesse seu microfone."
         }
       ],
       [
         "expo-media-library",
         {
-        "photosPermission": "Permita o acesso para salvar as fotos do inventário na pasta Fotos Merolli.",
+          "photosPermission": "Permita o acesso para salvar as fotos do inventário na pasta Fotos Merolli.",
           "savePhotosPermission": "Permita o acesso para salvar as fotos do inventário.",
           "isAccessMediaLocationEnabled": true
         }
@@ -79,7 +84,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "488a27df-3572-4d3c-a562-c10bfde8af4b"
+        "projectId": "ffc38b3b-00f0-4274-8708-640e17d820f0"
       }
     },
     "runtimeVersion": {
@@ -87,6 +92,7 @@
     },
     "updates": {
       "url": ""
-    }
+    },
+    "owner": "larissa241105"
   }
 }
