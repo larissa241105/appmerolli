@@ -240,6 +240,7 @@ const handleSalvar = async () => {
     setIsSaving(true);
 
     try {
+<<<<<<< HEAD
       // Aplicando toUpperCase() com Optional Chaining (?.) para segurança
       const payload = {
         osId: currentOsId, // Geralmente IDs não precisam de UpperCase, mas se for string, pode adicionar ?.toUpperCase()
@@ -256,6 +257,17 @@ const handleSalvar = async () => {
         statusProduto: selectedStatus?.toUpperCase(),
         modelo: modelo?.toUpperCase() || null,
         numeroSerie: numeroSerie?.toUpperCase() || null,
+=======
+      const payload = {
+        osId: currentOsId,
+        pedidoNumero: currentPedido,
+        tagCliente: tagParaSalvar,
+        tagAntiga: params.tagAntiga,
+        nomeCliente, setor, nomeColaborador, familia, tipo, descricao, marca,
+        statusProduto: selectedStatus,
+        modelo: modelo || null,
+        numeroSerie: numeroSerie || null,
+>>>>>>> 5adbd3a1b52175ee2031b018b98dc77a6571bfde
       };
 
       await axios.post(`${API_BASE_URL}/api/inventario`, payload);
@@ -269,6 +281,7 @@ const handleSalvar = async () => {
         }
       }
 
+<<<<<<< HEAD
       // Salvar Preferências (Tudo em maiúsculo também para manter o padrão na próxima vez que carregar)
       await AsyncStorage.multiSet([
         [STORAGE_KEYS.LAST_SETOR, setor?.toUpperCase() || ''],
@@ -279,6 +292,18 @@ const handleSalvar = async () => {
         [STORAGE_KEYS.LAST_COLABORADOR, nomeColaborador?.toUpperCase() || ''],
         [STORAGE_KEYS.LAST_CLIENTE, nomeCliente?.toUpperCase() || ''],
         [STORAGE_KEYS.LAST_DESCRICAO, descricao?.toUpperCase() || '']
+=======
+      // Salvar Preferências
+      await AsyncStorage.multiSet([
+        [STORAGE_KEYS.LAST_SETOR, setor],
+        [STORAGE_KEYS.LAST_FAMILIA, familia],
+        [STORAGE_KEYS.LAST_TIPO, tipo],
+        [STORAGE_KEYS.LAST_MARCA, marca],
+        [STORAGE_KEYS.LAST_STATUS, selectedStatus],
+        [STORAGE_KEYS.LAST_COLABORADOR, nomeColaborador || ''],
+        [STORAGE_KEYS.LAST_CLIENTE, nomeCliente || ''],
+        [STORAGE_KEYS.LAST_DESCRICAO, descricao || '']
+>>>>>>> 5adbd3a1b52175ee2031b018b98dc77a6571bfde
       ]);
 
       // Limpar Fotos Pendentes
@@ -305,6 +330,10 @@ const handleSalvar = async () => {
     }
   };
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 5adbd3a1b52175ee2031b018b98dc77a6571bfde
 const renderMiniatura = (uri, label) => {
     if (!uri) return null;
     return (
@@ -464,9 +493,15 @@ const renderMiniatura = (uri, label) => {
               dropdownIconColor="#000"
             >
               <Picker.Item label="S e l e c i o n e   u m   s t a t u s" value="" color="#757575ff" />
+<<<<<<< HEAD
               <Picker.Item label="Novo na caixa" value="NOVO" color="#000" />
               <Picker.Item label="Normal em uso" value="NORMAL EM USO" color="#000" />
               <Picker.Item label="Defeito em uso" value="DEFEITO EM USO" color="#000" />
+=======
+              <Picker.Item label="Novo na caixa" value="novo" color="#000" />
+              <Picker.Item label="Normal em uso" value="normal_em_uso" color="#000" />
+              <Picker.Item label="Defeito em uso" value="defeito_em_uso" color="#000" />
+>>>>>>> 5adbd3a1b52175ee2031b018b98dc77a6571bfde
               <Picker.Item label="Sucata" value="sucata" color="#000" />
             </Picker>
           </View>

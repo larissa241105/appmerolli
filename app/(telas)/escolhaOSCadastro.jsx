@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import React, { useState } from 'react';
+=======
+  import React, { useState } from 'react';
+>>>>>>> 5adbd3a1b52175ee2031b018b98dc77a6571bfde
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -26,8 +30,12 @@ export default function EscolhaOSCadastro() {
         return;
       }
 
+<<<<<<< HEAD
       // 4. Validação de Segurança (Verifica se a OS existe na lista válida carregada)
       // Nota: Acessamos via controller.display.osMap
+=======
+      
+>>>>>>> 5adbd3a1b52175ee2031b018b98dc77a6571bfde
       const osValida = controller.display.osMap.has(os);
       if (!osValida) {
         console.error("❌ OS não encontrada no Map:", os);
