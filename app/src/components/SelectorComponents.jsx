@@ -18,7 +18,6 @@ export const SelectorModal = ({
       visible={visible}
       onRequestClose={onClose}
     >
-      {/* Trocamos SafeAreaView por View para evitar conflitos de arquitetura */}
       <View style={styles.modalContainer}>
         <View style={styles.modalHeader}>
           <Text style={styles.modalTitle}>{title}</Text>
@@ -43,7 +42,6 @@ export const SelectorModal = ({
                   onClose();
                 }}
               >
-                {/* Garante que o item renderizado seja sempre string */}
                 <Text style={styles.modalItemText}>
                   {String(item[labelKey] || '')}
                 </Text>
@@ -56,7 +54,6 @@ export const SelectorModal = ({
   );
 };
 
-// --- PICKER DISPLAY ---
 export const PickerDisplay = ({ label, value, onPress, disabled, placeholder }) => {
   // Garante que displayValue seja sempre uma String segura
   const displayValue = (value !== null && value !== undefined && value !== "") 

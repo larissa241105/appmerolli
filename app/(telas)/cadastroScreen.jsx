@@ -213,7 +213,7 @@ const [fotos, setFotos] = useState({
   const onSelectMarca = (item) => {
     setMarca(item);
     setIsMarcaModalVisible(false);
-    setSearchText(prev => ({ ...prev, marca: '' })); // Limpa a busca da marca
+    setSearchText(prev => ({ ...prev, marca: '' }));
   };
 
 
@@ -240,7 +240,6 @@ const handleSalvar = async () => {
     setIsSaving(true);
 
     try {
-<<<<<<< HEAD
       // Aplicando toUpperCase() com Optional Chaining (?.) para segurança
       const payload = {
         osId: currentOsId, // Geralmente IDs não precisam de UpperCase, mas se for string, pode adicionar ?.toUpperCase()
@@ -257,19 +256,9 @@ const handleSalvar = async () => {
         statusProduto: selectedStatus?.toUpperCase(),
         modelo: modelo?.toUpperCase() || null,
         numeroSerie: numeroSerie?.toUpperCase() || null,
-=======
-      const payload = {
-        osId: currentOsId,
-        pedidoNumero: currentPedido,
-        tagCliente: tagParaSalvar,
-        tagAntiga: params.tagAntiga,
-        nomeCliente, setor, nomeColaborador, familia, tipo, descricao, marca,
-        statusProduto: selectedStatus,
-        modelo: modelo || null,
-        numeroSerie: numeroSerie || null,
->>>>>>> 5adbd3a1b52175ee2031b018b98dc77a6571bfde
-      };
-
+      }
+   
+    
       await axios.post(`${API_BASE_URL}/api/inventario`, payload);
 
       // Salvar Fotos
@@ -281,7 +270,7 @@ const handleSalvar = async () => {
         }
       }
 
-<<<<<<< HEAD
+
       // Salvar Preferências (Tudo em maiúsculo também para manter o padrão na próxima vez que carregar)
       await AsyncStorage.multiSet([
         [STORAGE_KEYS.LAST_SETOR, setor?.toUpperCase() || ''],
@@ -291,8 +280,8 @@ const handleSalvar = async () => {
         [STORAGE_KEYS.LAST_STATUS, selectedStatus?.toUpperCase() || ''],
         [STORAGE_KEYS.LAST_COLABORADOR, nomeColaborador?.toUpperCase() || ''],
         [STORAGE_KEYS.LAST_CLIENTE, nomeCliente?.toUpperCase() || ''],
-        [STORAGE_KEYS.LAST_DESCRICAO, descricao?.toUpperCase() || '']
-=======
+        [STORAGE_KEYS.LAST_DESCRICAO, descricao?.toUpperCase() || '']]);
+
       // Salvar Preferências
       await AsyncStorage.multiSet([
         [STORAGE_KEYS.LAST_SETOR, setor],
@@ -303,7 +292,7 @@ const handleSalvar = async () => {
         [STORAGE_KEYS.LAST_COLABORADOR, nomeColaborador || ''],
         [STORAGE_KEYS.LAST_CLIENTE, nomeCliente || ''],
         [STORAGE_KEYS.LAST_DESCRICAO, descricao || '']
->>>>>>> 5adbd3a1b52175ee2031b018b98dc77a6571bfde
+
       ]);
 
       // Limpar Fotos Pendentes
@@ -330,10 +319,6 @@ const handleSalvar = async () => {
     }
   };
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 5adbd3a1b52175ee2031b018b98dc77a6571bfde
 const renderMiniatura = (uri, label) => {
     if (!uri) return null;
     return (
@@ -343,6 +328,7 @@ const renderMiniatura = (uri, label) => {
       </View>
     );
   };
+
 
   return (
     <>
@@ -400,9 +386,9 @@ const renderMiniatura = (uri, label) => {
               placeholder="N o m e   d o    c l i e n t e"
               placeholderTextColor="#757575ff"
               value={nomeCliente}
-         onChangeText={setNomeCliente}
+              onChangeText={setNomeCliente}
             />
-          
+
           <Text style={[styles.label, { color: '#911a5fff' }]}>S e t o r *</Text>
           <TouchableOpacity style={styles.input} onPress={() => setIsSetorModalVisible(true)}>
             <Text style={setor ? styles.inputText : styles.inputPlaceholder}>
@@ -420,11 +406,13 @@ const renderMiniatura = (uri, label) => {
           />
 
           <Text style={[styles.label, { color: '#2f1c90ff' }]}>F a m í l i a *</Text>
+          
           <TouchableOpacity style={styles.input} onPress={() => setIsFamiliaModalVisible(true)}>
-            <Text style={familia ? styles.inputText : styles.inputPlaceholder}>
+          <Text style={familia ? styles.inputText : styles.inputPlaceholder}>
               {familia || "S e l e c i o n e  a  f a m í l i a"}
             </Text>
           </TouchableOpacity>
+
           <Text style={[styles.label, { color: '#520983ff' }]}>T i p o *</Text>
           <TouchableOpacity style={styles.input} onPress={() => setIsTipoModalVisible(true)}>
             <Text style={tipo ? styles.inputText : styles.inputPlaceholder}>
@@ -492,17 +480,13 @@ const renderMiniatura = (uri, label) => {
               style={styles.picker}
               dropdownIconColor="#000"
             >
+              
               <Picker.Item label="S e l e c i o n e   u m   s t a t u s" value="" color="#757575ff" />
-<<<<<<< HEAD
+
               <Picker.Item label="Novo na caixa" value="NOVO" color="#000" />
               <Picker.Item label="Normal em uso" value="NORMAL EM USO" color="#000" />
               <Picker.Item label="Defeito em uso" value="DEFEITO EM USO" color="#000" />
-=======
-              <Picker.Item label="Novo na caixa" value="novo" color="#000" />
-              <Picker.Item label="Normal em uso" value="normal_em_uso" color="#000" />
-              <Picker.Item label="Defeito em uso" value="defeito_em_uso" color="#000" />
->>>>>>> 5adbd3a1b52175ee2031b018b98dc77a6571bfde
-              <Picker.Item label="Sucata" value="sucata" color="#000" />
+              <Picker.Item label="Sucata" value="SUCATA" color="#000" />
             </Picker>
           </View>
 
@@ -554,10 +538,9 @@ const renderMiniatura = (uri, label) => {
           onSelect={onSelectMarca}
           title="Selecione a Marca"
           search={searchText.marca}
-          setSearch={(text) => setSearchText(prev => ({ ...prev, tipo: text }))}
+          setSearch={(text) => setSearchText(prev => ({ ...prev, marca: text }))}
         />
 
-    
     </>
   );
 }
