@@ -257,11 +257,9 @@ const handleSalvar = async () => {
         modelo: modelo?.toUpperCase() || null,
         numeroSerie: numeroSerie?.toUpperCase() || null,
       }
-   
     
       await axios.post(`${API_BASE_URL}/api/inventario`, payload);
 
-      // Salvar Fotos
       const fotosArray = Object.values(fotos).filter(uri => uri);
       if (fotosArray.length > 0) {
         const perm = await (galleryPermission?.granted ? Promise.resolve({ granted: true }) : requestGalleryPermission());
@@ -271,7 +269,6 @@ const handleSalvar = async () => {
       }
 
 
-      // Salvar Preferências (Tudo em maiúsculo também para manter o padrão na próxima vez que carregar)
       await AsyncStorage.multiSet([
         [STORAGE_KEYS.LAST_SETOR, setor?.toUpperCase() || ''],
         [STORAGE_KEYS.LAST_FAMILIA, familia?.toUpperCase() || ''],
@@ -344,13 +341,14 @@ const renderMiniatura = (uri, label) => {
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 80}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent} // Mudança aqui: use contentContainerStyle
-          keyboardShouldPersistTaps="handled" // Importante para o botão funcionar de primeira
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 80}>
+
+
+        <ScrollView                                                                                   
+          contentContainerStyle={styles.scrollContent}                                             
+          keyboardShouldPersistTaps="handled"  
           showsVerticalScrollIndicator={false}
-        >
+        >   
           <View style={styles.formContainer}>
 
             

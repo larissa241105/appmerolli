@@ -1,7 +1,7 @@
 import { View, Text, FlatList } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState, } from 'react';
-import { StyleSheet, ActivityIndicator } from 'react-native';
+import { StyleSheet  } from 'react-native';
 import axios from 'axios';
 import { useRouter } from 'expo-router';
 import { TouchableOpacity } from 'react-native';
@@ -20,7 +20,7 @@ const API_BASE_URL = 'https://orca-app-kokvo.ondigitalocean.app';
 
 export default function ListadeProdutoInventario() {
 
-const { osId, nomeCliente, pedidoNumero } = useLocalSearchParams();
+const { osId, nomeCliente, pedidoNumero, cnpj } = useLocalSearchParams();
   const router = useRouter(); 
    const insets = useSafeAreaInsets();
   const [itens, setItens] = useState([]);
@@ -69,48 +69,69 @@ const { osId, nomeCliente, pedidoNumero } = useLocalSearchParams();
   );
 
 
-  const gerarExcel = async () => {
-    // --- CORREÇÃO 2: Lê do 'cofre' (ref) em vez do estado direto ---
-    const dadosAtuais = itensRef.current;
+  const baixarExcel = async () => {
 
-    console.log("Tentando gerar excel com qtd itens:", dadosAtuais.length);
-
-    if (!dadosAtuais || dadosAtuais.length === 0) {
-      Alert.alert("Atenção", "Não há itens carregados para gerar o Excel.");
+    if (!pedidoNumero || !cnpj) {
+      Alert.alert("Atenção", "Faltam dados (Pedido ou CNPJ) para gerar o relatório completo.");
       return;
     }
 
     try {
-      // 1. Cria a planilha
-      const ws = XLSX.utils.json_to_sheet(dadosAtuais);
+      console.log("Buscando relatório no banco...");
 
-      // 2. Cria o livro
+      const apiUrl = `${API_BASE_URL}/relatorio/${encodeURIComponent(pedidoNumero)}?cnpj=${encodeURIComponent(cnpj)}`;
+      const response = await axios.get(apiUrl);
+      const dadosDoBanco = response.data;
+
+      if (!dadosDoBanco || dadosDoBanco.length === 0) {
+        Alert.alert("Atenção", "Nenhum item encontrado no banco para este pedido e CNPJ.");
+        return;
+      }
+
+      const paraMaiusculo = (valor) => valor ? String(valor).toUpperCase() : '-';
+
+      const dadosFormatados = dadosDoBanco.map((item) => ({
+        "Data": paraMaiusculo(item.data_criacao),
+          "N° pedido": paraMaiusculo(item.numero_pedido),  
+          "Nome Auxiliar": paraMaiusculo(item.nome_auxiliar),
+          "Nome Cliente": paraMaiusculo(item.nome_cliente),
+          "Tag Cliente": paraMaiusculo(item.tag_cliente),
+          "Tag Antiga": paraMaiusculo(item.tag_antiga),
+          "Setor": paraMaiusculo(item.setor),
+          "Nome Colaborador": paraMaiusculo(item.nome_colaborador),
+          "Família": paraMaiusculo(item.familia),
+          "Tipo": paraMaiusculo(item.tipo),
+          "Descrição": paraMaiusculo(item.descricao),
+          "Marca": paraMaiusculo(item.marca),
+          "Modelo": paraMaiusculo(item.modelo),
+          "N° de série": paraMaiusculo(item.numero_serie),
+          "Imei 1": paraMaiusculo(item.imei1),
+          "Imei 2": paraMaiusculo(item.imei2),
+          "Status": paraMaiusculo(item.status_produto)
+      }));
+  
+      // 4. Cria a planilha
+      const ws = XLSX.utils.json_to_sheet(dadosFormatados);
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Inventario");
-
-      // 3. Gera o arquivo em base64
+      XLSX.utils.book_append_sheet(wb, ws, "Relatorio");
+  
+      // 5. Download Mobile (Lógica para o celular)
       const wbout = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
+      const fileName = `Relatorio_Pedido_${pedidoNumero}.xlsx`;
+      const uri = FileSystem.documentDirectory + fileName;
 
-      // 4. Define o caminho
-      const fileName = `Inventario_${nomeCliente || 'Cliente'}_${osId}.xlsx`;
-      const cleanFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const uri = FileSystem.documentDirectory + cleanFileName;
-
-      // 5. Escreve o arquivo
-      // --- IMPORTANTE: Usamos string 'base64' direto para evitar erro de versão ---
       await FileSystem.writeAsStringAsync(uri, wbout, {
-        encoding: 'base64' 
+        encoding: 'base64'
       });
 
-      // 6. Compartilha
       await Sharing.shareAsync(uri, {
         mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        dialogTitle: 'Baixar Excel do Inventário'
+        dialogTitle: 'Salvar Relatório Excel'
       });
 
     } catch (error) {
-      console.error("Erro ao gerar Excel:", error);
-      Alert.alert("Erro", `Falha ao gerar o arquivo: ${error.message}`);
+      console.error("Erro ao gerar Excel pela API:", error);
+      Alert.alert("Erro", "Não foi possível buscar os dados do relatório no servidor.");
     }
   };
 
@@ -127,7 +148,7 @@ const { osId, nomeCliente, pedidoNumero } = useLocalSearchParams();
         },
         {
           text: "Gerar Excel Completo",
-          onPress: gerarExcel, // Chama a função do Excel
+          onPress: baixarExcel, // Chama a função do Excel
         },
       ]
     );

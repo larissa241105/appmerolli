@@ -26,7 +26,7 @@ export default function EscolhaOSConsulta() {
         Alert.alert("Atenção", "Por favor, selecione todas as opções para consultar.");
         return;
       }
-
+      
       
       if (!controller.display.osMap.has(os)) {
         Alert.alert("Erro", "A OS selecionada não é mais válida. Por favor, selecione novamente.");
@@ -51,7 +51,8 @@ export default function EscolhaOSConsulta() {
         params: { 
             osId: os, 
             nomeCliente: nomeClienteParaEnvio, 
-            pedidoNumero: pedido 
+            pedidoNumero: pedido,
+            cnpj: cliente
         }
       });
 
