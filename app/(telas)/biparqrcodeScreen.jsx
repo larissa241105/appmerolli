@@ -57,6 +57,8 @@ const handleBarCodeScanned = ({ type, data }) => {
     );
   }
 
+  //larissa
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Leitor de Código de Barras</Text>
