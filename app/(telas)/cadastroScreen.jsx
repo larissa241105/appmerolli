@@ -492,8 +492,24 @@ useEffect(() => {
       ]);
 
     } catch (error) {
-      console.error('Erro ao salvar:', error);
-      Alert.alert('Erro', 'Falha ao salvar: ' + error.message);
+     if (error.response) {
+      const status = error.response.status;
+      const mensagemServidor = error.response.data.message;
+
+      if (status === 403) {
+        // CASO: LIMITE ATINGIDO (MENSAGEM QUE VOCÊ CRIOU NO BACKEND)
+        Alert.alert("Limite Excedido", mensagemServidor);
+      }
+      else if (status === 400) {
+        Alert.alert("Erro nos Dados", "Preencha todos os campos obrigatórios.");
+      } else {
+        Alert.alert("Erro no Servidor", "Ocorreu um erro interno. Tente mais tarde.");
+      }
+    } else {
+      // Caso seja um erro de rede (internet caiu, servidor offline)
+      Alert.alert("Erro de Conexão", "Não foi possível contatar o servidor.");
+    }
+  
     } finally {
       setIsSaving(false);
     }

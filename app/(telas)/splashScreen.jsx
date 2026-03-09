@@ -1,13 +1,13 @@
-import React from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+
+import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
-import { router } from 'expo-router';
-
-const { width } = Dimensions.get('window');
+import { useLocalSearchParams, useRouter } from 'expo-router';
 
 const SplashScreen = () => {
-  const insets = useSafeAreaInsets();
+  const router = useRouter();
+  
+  const { cnpjEmpresa, nomeFantasia } = useLocalSearchParams();
 
   function LogoTitle() {
     return (
@@ -18,15 +18,20 @@ const SplashScreen = () => {
       />
     );
   }
-
-  const handleCadastro = () => {
-    router.push('escolhaOSCadastro'); 
+const handleCadastro = () => {
+    router.push({
+      pathname: 'escolhaOSCadastro',
+      params: { cnpjEmpresa: cnpjEmpresa, nomeFantasia: nomeFantasia } // Repassando o bastão
+    });
   };
 
+  // 3. Passa o CNPJ para a tela de Consulta
   const handleConsulta = () => {
-    router.push('escolhaOsConsulta');
+    router.push({
+      pathname: 'escolhaOsConsulta',
+      params: { cnpjEmpresa: cnpjEmpresa, nomeFantasia: nomeFantasia } // Repassando o bastão
+    });
   };
-
 
   return (
     <>

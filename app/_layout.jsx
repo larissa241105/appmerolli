@@ -4,16 +4,13 @@ import { useState } from 'react';
 import { Text } from 'react-native';
 
 export default function RootLayout() {
-  // Simule o estado de autenticação e carregamento
+  
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Use um useEffect para simular a verificação de autenticação
-  // Em um projeto real, você faria uma chamada à API aqui
   useState(() => {
     setTimeout(() => {
       setIsLoading(false);
-      // setIsAuthenticated(true); // Mude para 'true' para testar a tela principal
     }, 2000);
   }, []);
 

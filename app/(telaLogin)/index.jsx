@@ -1,36 +1,42 @@
 import React, { useState } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { FloatingLabelInput } from 'react-native-floating-label-input';
 import axios from 'axios';
 
 const API_URL = 'https://orca-app-kokvo.ondigitalocean.app';
 
 export default function LoginScreen() {
-  const [cpf, setCpf] = useState('');
+  const [cnpj, setcnpj] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async () => {
-    if (!cpf || !password) {
-      Alert.alert('Atenção', 'Por favor, preencha o CPF e a senha.');
+    if (!cnpj || !password) {
+      Alert.alert('Atenção', 'Por favor, preencha o cnpj e a senha.');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const response = await axios.post(`${API_URL}/api/login/auxiliar`, {
-        usuario: cpf,
+      const response = await axios.post(`${API_URL}/api/login/cliente`, {
+        usuario: cnpj,
         senha: password,   
       });
 
       const { user } = response.data;
+ const nomeFantasia = user.nome_fantasia || user.razao_social;
+      Alert.alert('Login bem-sucedido!', `Bem-vindo, ${nomeFantasia}!`);
 
-      Alert.alert('Login bem-sucedido!', `Bem-vindo, ${user.nome}!`);
+      const cnpjDoUsuario = user.cnpj || user.cnpj_cliente;
+     
 
-      router.replace('splashScreen');
+     router.replace({
+      pathname: 'splashScreen', 
+      params: { cnpjEmpresa: cnpjDoUsuario, nomeFantasia: nomeFantasia } 
+    });
 
     } catch (error) {
       if (error.response) {
@@ -66,9 +72,9 @@ export default function LoginScreen() {
         <View style={styles.inputContainer}>
           <Text style={styles.textLogin}>Login</Text>
           <FloatingLabelInput
-            label="Cpf"
+            label="Cnpj"
             keyboardType="numeric"
-            mask="123.456.789-00"
+            
             staticLabel
             containerStyles={{
               borderWidth: 2,
@@ -90,8 +96,8 @@ export default function LoginScreen() {
               color: '#262626ff',
               paddingHorizontal: 10,
             }}
-            value={cpf}
-            onChangeText={value => setCpf(value)}
+            value={cnpj}
+            onChangeText={value => setcnpj(value)}
           />
         </View>
 

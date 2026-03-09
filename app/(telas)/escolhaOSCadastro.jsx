@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, StyleSheet, Modal, FlatList, Pressable, 
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import axios from 'axios';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -96,9 +96,10 @@ export default function EscolhaOSCadastro() {
   const [navegando, setNavegando] = useState(false);
   const [listaPedidosUnidades, setListaPedidosUnidades] = useState([]);
   const [listaOSProdutos, setListaOSProdutos] = useState([]);
+const { cnpjEmpresa, nomeFantasia } = useLocalSearchParams();
 
   const [selecoes, setSelecoes] = useState({
-    cliente: "",
+    cliente: normalizar(cnpjEmpresa),
     pedido: "",
     unidade: "",
     os: "",
@@ -129,26 +130,7 @@ export default function EscolhaOSCadastro() {
     fetchData();
   }, []);
 
-  const listaClientes = useMemo(() => {
-    const map = new Map();
-    listaPedidosUnidades.forEach(item => {
-      if (!item) return;
-      const cnpj = normalizar(item.cnpj_cliente);
-      const razao = normalizar(item.razao_social);
-      if (cnpj && razao) {
-        map.set(cnpj, razao);
-      }
-    });
-    return Array.from(map, ([cnpj, razao]) => ({
-      value: cnpj,
-      label: razao,
-    }));
-  }, [listaPedidosUnidades]);
-  
 
-  const clienteMap = useMemo(() => {
-    return new Map(listaClientes.map(c => [c.value, c.label]));
-  }, [listaClientes]);
 
   const listaPedidos = useMemo(() => {
     if (!selecoes.cliente) return [];
@@ -216,10 +198,7 @@ export default function EscolhaOSCadastro() {
     const valorNorm = normalizar(value);
     
     switch (type) {
-      case 'cliente':
-        console.log(`SELECIONADO CLIENTE: ${valorNorm}`);
-        setSelecoes({ cliente: valorNorm, pedido: "", unidade: "", os: "" });
-        break;
+     
       case 'pedido':
         console.log(`SELECIONADO PEDIDO: ${valorNorm}`);
         setSelecoes(prev => ({ ...prev, pedido: valorNorm, unidade: "", os: "" }));
@@ -246,13 +225,7 @@ export default function EscolhaOSCadastro() {
 
   const getModalData = () => {
     switch (modalState.type) {
-      case 'cliente':
-        return {
-          title: 'Selecione o Cliente',
-          options: listaClientes,
-          labelKey: 'label',
-          valueKey: 'value',
-        };
+      
       case 'pedido':
         return {
           title: 'Selecione o Pedido',
@@ -356,14 +329,11 @@ export default function EscolhaOSCadastro() {
         <View style={styles.formContainer}>
           <Text style={styles.title}>Vincular Ordem de Serviço</Text>
 
-
-          <PickerDisplay
-            label="1. Cliente"
-            value={clienteMap.get(selecoes.cliente)} 
-            placeholder="Selecione o Cliente"
-            onPress={() => openModal('cliente')}
-            disabled={navegando}
-          />
+         <Text style={{ fontSize: 14, color: '#666', marginBottom: 25 }}>
+          Empresa: <Text style={{ fontWeight: 'bold', color: '#007bff' }}>
+            {nomeFantasia || "Nome não identificado"}
+          </Text>
+        </Text>
 
 
           <PickerDisplay

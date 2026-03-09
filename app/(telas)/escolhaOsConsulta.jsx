@@ -13,12 +13,18 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import axios from 'axios';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useLocalSearchParams } from 'expo-router';
 
 const API_BASE_URL = 'https://orca-app-kokvo.ondigitalocean.app';
+
+
+const normalizar = (valor) => {
+  if (valor === null || valor === undefined) return "";
+  return String(valor).trim();
+};
 
 
 const SelectorModal = ({
@@ -27,8 +33,8 @@ const SelectorModal = ({
   options,
   onSelect,
   title,
-  labelKey, 
-  valueKey,
+  labelKey,
+  valueKey, 
 }) => {
   return (
     <Modal
@@ -77,42 +83,42 @@ const PickerDisplay = ({ label, value, onPress, disabled, placeholder }) => {
   const textStyle = value ? styles.pickerDisplayText : styles.pickerPlaceholderText;
 
   return (
-    <View style={styles.pickerDisplayContainer}> 
+    <View style={styles.pickerContainer}>
       <Text style={styles.pickerLabel}>{label}</Text>
       <TouchableOpacity
         style={[styles.pickerButton, disabled && styles.pickerButtonDisabled]}
         onPress={onPress}
         disabled={disabled}
       >
-        <Text style={textStyle} numberOfLines={1}>{displayValue}</Text>
+        <Text style={textStyle}>{displayValue}</Text>
         <Text style={styles.pickerArrow}>▼</Text>
       </TouchableOpacity>
     </View>
   );
 };
 
-
-export default function EscolhaOSConsulta() {
+export default function EscolhaOSCadastro() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
+
+      const insets = useSafeAreaInsets();
 
   const [loading, setLoading] = useState(true);
+  const [navegando, setNavegando] = useState(false);
   const [listaPedidosUnidades, setListaPedidosUnidades] = useState([]);
   const [listaOSProdutos, setListaOSProdutos] = useState([]);
+const { cnpjEmpresa } = useLocalSearchParams();
 
   const [selecoes, setSelecoes] = useState({
-    cliente: "",
+    cliente: normalizar(cnpjEmpresa),
     pedido: "",
     unidade: "",
     os: "",
   });
 
-
   const [modalState, setModalState] = useState({
     visible: false,
     type: null, 
   });
-
 
   useEffect(() => {
     async function fetchData() {
@@ -125,7 +131,7 @@ export default function EscolhaOSConsulta() {
         setListaPedidosUnidades(Array.isArray(resPedidos.data) ? resPedidos.data : []);
         setListaOSProdutos(Array.isArray(resOS.data) ? resOS.data : []);
       } catch (error) {
-        console.error("Erro ao buscar dados:", error.message);
+        console.error("Erro ao buscar dados:", error);
         Alert.alert("Erro de Conexão", "Não foi possível carregar os dados.");
       } finally {
         setLoading(false);
@@ -134,138 +140,75 @@ export default function EscolhaOSConsulta() {
     fetchData();
   }, []);
 
-  // ========================================
-  // FUNÇÕES AUXILIARES (useCallback)
-  // ========================================
-  const normalizar = useCallback((valor) => {
-    if (valor === null || valor === undefined) return "";
-    return String(valor).trim();
-  }, []);
 
-  // ========================================
-  // LISTAS MEMORIZADAS (useMemo)
-  // Ajustadas para gerar { value, label } para o modal
-  // ========================================
-  
-  const listaClientes = useMemo(() => {
-    try {
-      const map = new Map();
-      listaPedidosUnidades.forEach(item => {
-        if (!item) return;
-        const cnpj = normalizar(item.cnpj_cliente);
-        const razao = normalizar(item.razao_social);
-        if (cnpj && razao) {
-          map.set(cnpj, razao);
-        }
-      });
-      // ✅ FORMATO { value, label }
-      return Array.from(map, ([cnpj, razao]) => ({
-        value: cnpj,
-        label: razao,
-      }));
-    } catch (error) {
-      console.error("Erro ao processar clientes:", error);
-      return [];
-    }
-  }, [listaPedidosUnidades, normalizar]);
-
-  // Map para buscar NOME do cliente pelo CNPJ (para o display)
-  const clienteMap = useMemo(() => {
-    return new Map(listaClientes.map(c => [c.value, c.label]));
-  }, [listaClientes]);
 
   const listaPedidos = useMemo(() => {
-    try {
-      if (!selecoes.cliente) return [];
-      const pedidosSet = new Set();
-      listaPedidosUnidades.forEach(item => {
-        if (!item) return;
-        const cnpj = normalizar(item.cnpj_cliente);
-        const pedido = normalizar(item.numeropedido);
-        if (cnpj === selecoes.cliente && pedido) {
-          pedidosSet.add(pedido);
-        }
-      });
-      // ✅ FORMATO { value, label }
-      return Array.from(pedidosSet).sort().map(p => ({ value: p, label: p }));
-    } catch (error) {
-      console.error("Erro ao processar pedidos:", error);
-      return [];
-    }
-  }, [selecoes.cliente, listaPedidosUnidades, normalizar]);
+    if (!selecoes.cliente) return [];
+    const pedidosSet = new Set();
+    listaPedidosUnidades.forEach(item => {
+      if (!item) return;
+      const cnpj = normalizar(item.cnpj_cliente);
+      const pedido = normalizar(item.numeropedido);
+      if (cnpj === selecoes.cliente && pedido) {
+        pedidosSet.add(pedido);
+      }
+    });
+    return Array.from(pedidosSet).sort().map(p => ({ value: p, label: p }));
+  }, [selecoes.cliente, listaPedidosUnidades]);
 
   const listaUnidades = useMemo(() => {
-    try {
-      if (!selecoes.pedido) return [];
-      const unidadesSet = new Set();
-      listaPedidosUnidades.forEach(item => {
-        if (!item) return;
-        const pedido = normalizar(item.numeropedido);
-        const unidade = normalizar(item.unidade_nome);
-        if (pedido === selecoes.pedido && unidade) {
-          unidadesSet.add(unidade);
-        }
-      });
-      // ✅ FORMATO { value, label }
-      return Array.from(unidadesSet).sort().map(u => ({ value: u, label: u }));
-    } catch (error) {
-      console.error("Erro ao processar unidades:", error);
-      return [];
-    }
-  }, [selecoes.pedido, listaPedidosUnidades, normalizar]);
+    if (!selecoes.pedido) return [];
+    const unidadesSet = new Set();
+    listaPedidosUnidades.forEach(item => {
+      if (!item) return;
+      const pedido = normalizar(item.numeropedido);
+      const unidade = normalizar(item.unidade_nome);
+      if (pedido === selecoes.pedido && unidade) {
+        unidadesSet.add(unidade);
+      }
+    });
+    return Array.from(unidadesSet).sort().map(u => ({ value: u, label: u }));
+  }, [selecoes.pedido, listaPedidosUnidades]);
 
   const listaOrdensServico = useMemo(() => {
-    try {
-      if (!selecoes.cliente || !selecoes.pedido || !selecoes.unidade) return [];
-      
-      const osMap = new Map();
-      listaOSProdutos.forEach(os => {
-        if (!os || os.id_os == null) return;
-        
-        const cnpj = normalizar(os.cnpj_cliente);
-        const unidade = normalizar(os.unidade_cliente);
-        const pedido = normalizar(os.numero_pedido_origem);
-        
-        if (cnpj === selecoes.cliente && 
-            unidade === selecoes.unidade && 
-            pedido === selecoes.pedido) {
-          
-          const idOS = normalizar(os.id_os);
-          const numeroOS = normalizar(os.numero_os) || `OS ${idOS}`;
-          
-          if (idOS && !osMap.has(idOS)) {
-            // ✅ FORMATO { value, label }
-            osMap.set(idOS, { value: idOS, label: numeroOS });
-          }
-        }
-      });
-      return Array.from(osMap.values());
-    } catch (error) {
-      console.error("Erro ao processar OS:", error);
+    if (!selecoes.cliente || !selecoes.pedido || !selecoes.unidade) {
       return [];
     }
-  }, [selecoes.cliente, selecoes.pedido, selecoes.unidade, listaOSProdutos, normalizar]);
+    const osMap = new Map();
+    listaOSProdutos.forEach((os) => {
+      if (!os || os.id_os == null || os.id_os === '') return;
 
-  // Map para buscar NÚMERO da OS pelo ID (para o display)
+      const cnpj = normalizar(os.cnpj_cliente);
+      const unidade = normalizar(os.unidade_cliente);
+      const pedido = normalizar(os.numero_pedido_origem);
+
+      if (
+        cnpj === selecoes.cliente &&
+        unidade === selecoes.unidade &&
+        pedido === selecoes.pedido
+      ) {
+        const idOS = normalizar(os.id_os);
+        const numeroOS = normalizar(os.numero_os) || `OS ${idOS}`;
+        if (idOS) {
+          osMap.set(idOS, { value: idOS, label: numeroOS });
+        }
+      }
+    });
+    return Array.from(osMap.values());
+  }, [selecoes.cliente, selecoes.pedido, selecoes.unidade, listaOSProdutos]);
+
+  
   const osMap = useMemo(() => {
     return new Map(listaOrdensServico.map(os => [os.value, os.label]));
   }, [listaOrdensServico]);
 
-  // ========================================
-  // NOVOS HANDLERS (Simples e Síncronos)
-  // ========================================
-  
-  // ❌ REMOVIDOS: handleClienteChange, handlePedidoChange, handleUnidadeChange, handleOSChange
-  
-  // ✅ NOVO: Handler unificado para todas as seleções
+
+
   const handleSelect = (type, value) => {
     const valorNorm = normalizar(value);
     
     switch (type) {
-      case 'cliente':
-        console.log(`SELECIONADO CLIENTE: ${valorNorm}`);
-        setSelecoes({ cliente: valorNorm, pedido: "", unidade: "", os: "" });
-        break;
+     
       case 'pedido':
         console.log(`SELECIONADO PEDIDO: ${valorNorm}`);
         setSelecoes(prev => ({ ...prev, pedido: valorNorm, unidade: "", os: "" }));
@@ -279,95 +222,99 @@ export default function EscolhaOSConsulta() {
         setSelecoes(prev => ({ ...prev, os: valorNorm }));
         break;
     }
+
     setModalState({ visible: false, type: null });
   };
 
-  // ✅ NOVO: Função para abrir o modal
+
   const openModal = (type) => {
+    if (navegando) return;
     setModalState({ visible: true, type: type });
   };
 
-  // ✅ NOVO: Função para configurar o modal
+
   const getModalData = () => {
     switch (modalState.type) {
-      case 'cliente':
-        return { title: 'Selecione o Cliente', options: listaClientes, labelKey: 'label', valueKey: 'value' };
+      
       case 'pedido':
-        return { title: 'Selecione o Pedido', options: listaPedidos, labelKey: 'label', valueKey: 'value' };
+        return {
+          title: 'Selecione o Pedido',
+          options: listaPedidos,
+          labelKey: 'label',
+          valueKey: 'value',
+        };
       case 'unidade':
-        return { title: 'Selecione a Unidade', options: listaUnidades, labelKey: 'label', valueKey: 'value' };
+        return {
+          title: 'Selecione a Unidade',
+          options: listaUnidades,
+          labelKey: 'label',
+          valueKey: 'value',
+        };
       case 'os':
-        return { title: 'Selecione a OS', options: listaOrdensServico, labelKey: 'label', valueKey: 'value' };
+        return {
+          title: 'Selecione a OS',
+          options: listaOrdensServico,
+          labelKey: 'label',
+          valueKey: 'value',
+        };
       default:
         return { title: '', options: [], labelKey: 'label', valueKey: 'value' };
     }
   };
 
-  // ========================================
-  // AÇÃO PRINCIPAL (handleConsultar)
-  // (Mantido 100% como o seu - está correto)
-  // ========================================
-  const handleConsultar = useCallback(async () => {
+  const handleConsultar = () => {
+
     try {
+      if (navegando) return;
       const { cliente, pedido, unidade, os } = selecoes;
-      console.log("🔍 Iniciando consulta com:", { cliente, pedido, unidade, os });
-      
       if (!cliente || !pedido || !unidade || !os) {
-        Alert.alert("Atenção", "Por favor, selecione todas as opções para consultar.");
+        Alert.alert("Atenção", "Por favor, selecione todas as opções.");
         return;
       }
 
-      // Validação extra (garante que a OS ainda existe no map)
-      if (!osMap.has(os)) {
-        Alert.alert("Erro", "A OS selecionada não é mais válida. Por favor, selecione novamente.");
+      const osValida = osMap.has(os);
+      if (!osValida) {
+        console.error("OS não encontrada no Map:", os);
+        Alert.alert("Erro", "A OS selecionada não é mais válida. Tente novamente.");
         return;
       }
 
-      const nomeClienteParaEnvio = clienteMap.get(cliente) || cliente;
+      setNavegando(true);
 
-      const apiUrl = `${API_BASE_URL}/api/inventario/consulta?osId=${encodeURIComponent(os)}`;
-      console.log("📡 Chamando API:", apiUrl);
-      
-      await axios.get(apiUrl);
-      
-      console.log("✅ API respondeu, navegando...");
+      const params = {
+        osId: String(os),
+        cliente: String(cliente),
+        unidadeNome: String(unidade),
+        pedidoNumero: String(pedido)
+      };
+
+      console.log("Navegando com params:", params);
 
       router.push({
-        pathname: 'listadeProdutoInventario',
-        params: { 
-            osId: os, 
-            nomeCliente: nomeClienteParaEnvio, // Enviando o NOME, não o CNPJ
-            pedidoNumero: pedido // Talvez você precise disso para a contagem também
-        }
+        pathname: "listadeProdutoInventario",
+        params: params
       });
+    
 
     } catch (error) {
-      console.error("❌ Erro na consulta:", error);
-      if (error?.response?.status === 404) {
-        Alert.alert("Nenhum Resultado", "Nenhum item de inventário foi encontrado para esta Ordem de Serviço.");
-      } else {
-        Alert.alert("Erro", "Não foi possível realizar a consulta. Tente novamente.");
-      }
+      console.error("Erro ao Salvar/Navegar:", error);
+      Alert.alert("Erro", `Ocorreu um erro ao navegar: ${error.message}`);
+      setNavegando(false);
     }
-  }, [selecoes, router, osMap]); // Adicionado osMap às dependências
+  };
 
-  // ========================================
-  // LOADING STATE (Sem alterações)
-  // ========================================
+
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: '#f5f5f5' }}>
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#0000ff" />
-        <Text style={{ marginTop: 10, fontSize: 16 }}>Carregando dados...</Text>
+        <Text style={styles.loadingText}>Carregando dados...</Text>
       </View>
     );
   }
 
-  // ========================================
-  // RENDER
-  // ========================================
   const modalData = getModalData();
-  const isButtonDisabled = !selecoes.cliente || !selecoes.pedido || !selecoes.unidade || !selecoes.os;
+  const isButtonDisabled = navegando || !selecoes.cliente || !selecoes.pedido || !selecoes.unidade || !selecoes.os;
 
   return (
     <>
@@ -376,7 +323,7 @@ export default function EscolhaOSConsulta() {
                 <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
                 <MaterialIcons name="arrow-back" size={28} color="#ffffffff" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>O.S Cadastro</Text>
+                <Text style={styles.headerTitle}>O.S Consulta</Text>
           </View>
       <SelectorModal
         visible={modalState.visible}
@@ -392,41 +339,32 @@ export default function EscolhaOSConsulta() {
         <View style={styles.formContainer}>
           <Text style={styles.title}>Consultar Inventário</Text>
 
-          <PickerDisplay
-            label="1. Cliente"
-            value={clienteMap.get(selecoes.cliente)} // Mostra a Razão Social
-            placeholder="Selecione o Cliente"
-            onPress={() => openModal('cliente')}
-          />
+       
 
-          {/* PEDIDOS */}
           <PickerDisplay
-            label="2. Pedido"
+            label="1. Pedido"
             value={selecoes.pedido}
             placeholder="Selecione o Pedido"
             onPress={() => openModal('pedido')}
             disabled={!selecoes.cliente || listaPedidos.length === 0}
           />
 
-          {/* UNIDADES */}
           <PickerDisplay
-            label="3. Unidade"
+            label="2. Unidade"
             value={selecoes.unidade}
             placeholder="Selecione a Unidade"
             onPress={() => openModal('unidade')}
             disabled={!selecoes.pedido || listaUnidades.length === 0}
           />
 
-          {/* ORDENS DE SERVIÇO */}
           <PickerDisplay
-            label="4. Ordem de Serviço"
-            value={osMap.get(selecoes.os)} // Mostra o Número da OS
+            label="3. Ordem de Serviço"
+            value={osMap.get(selecoes.os)} 
             placeholder="Selecione a OS"
             onPress={() => openModal('os')}
             disabled={!selecoes.unidade || listaOrdensServico.length === 0}
           />
 
-          {/* BOTÃO CONSULTAR */}
           <TouchableOpacity
             style={[
               styles.button,
@@ -443,10 +381,7 @@ export default function EscolhaOSConsulta() {
   );
 }
 
-// ========================================
-// STYLESHEET
-// (Estilos completos para o formulário e o novo modal)
-// ========================================
+
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
